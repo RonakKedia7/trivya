@@ -1,0 +1,234 @@
+'use client';
+
+import { useState } from 'react';
+import { mockAppointments, departments } from '@/lib/mock-data';
+import { Appointment, AppointmentStatus } from '@/lib/types';
+
+export default function AdminAppointmentsPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<string>('');
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+
+  const filteredAppointments = appointments.filter(apt => {
+    const matchesSearch = apt.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         apt.doctorName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = !statusFilter || apt.status === statusFilter;
+    const matchesDepartment = !departmentFilter || apt.department === departmentFilter;
+    const matchesDate = !dateFilter || apt.date === dateFilter;
+    return matchesSearch && matchesStatus && matchesDepartment && matchesDate;
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'scheduled':
+        return 'bg-chart-1/10 text-chart-1';
+      case 'completed':
+        return 'bg-success/10 text-success';
+      case 'cancelled':
+        return 'bg-destructive/10 text-destructive';
+      case 'in-progress':
+        return 'bg-warning/10 text-warning';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground">Appointments Management</h1>
+        <p className="text-muted-foreground">View and manage all hospital appointments</p>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <input
+          type="text"
+          placeholder="Search patient or doctor..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+        >
+          <option value="">All Statuses</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="in-progress">In Progress</option>
+        </select>
+        <select
+          value={departmentFilter}
+          onChange={(e) => setDepartmentFilter(e.target.value)}
+          className="cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+        >
+          <option value="">All Departments</option>
+          {departments.map((dept) => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          className="cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+        />
+      </div>
+
+      {/* Stats */}
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-sm text-muted-foreground">Total</p>
+          <p className="text-2xl font-bold text-foreground">{filteredAppointments.length}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-sm text-muted-foreground">Scheduled</p>
+          <p className="text-2xl font-bold text-chart-1">{filteredAppointments.filter(a => a.status === 'scheduled').length}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-sm text-muted-foreground">Completed</p>
+          <p className="text-2xl font-bold text-success">{filteredAppointments.filter(a => a.status === 'completed').length}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-sm text-muted-foreground">Cancelled</p>
+          <p className="text-2xl font-bold text-destructive">{filteredAppointments.filter(a => a.status === 'cancelled').length}</p>
+        </div>
+      </div>
+
+      {/* Appointments Table */}
+      <div className="rounded-xl border border-border bg-card">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border bg-secondary/50">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Patient</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Doctor</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Department</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date & Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredAppointments.map((apt) => (
+                <tr key={apt.id} className="hover:bg-secondary/30">
+                  <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-muted-foreground">
+                    {apt.id.slice(0, 8)}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 font-medium text-foreground">
+                    {apt.patientName}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">
+                    {apt.doctorName}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">
+                    {apt.department}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">
+                    {apt.date} at {apt.time}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(apt.status)}`}>
+                      {apt.status}
+                    </span>
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <button
+                      onClick={() => setSelectedAppointment(apt)}
+                      className="cursor-pointer text-sm text-primary hover:underline"
+                    >
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {filteredAppointments.length === 0 && (
+          <div className="py-12 text-center">
+            <p className="text-muted-foreground">No appointments found matching your criteria.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Appointment Details Modal */}
+      {selectedAppointment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-card p-6">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">Appointment Details</h2>
+              <button
+                onClick={() => setSelectedAppointment(null)}
+                className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
+                <span className="text-sm text-muted-foreground">Status</span>
+                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(selectedAppointment.status)}`}>
+                  {selectedAppointment.status}
+                </span>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-sm text-muted-foreground">Patient</p>
+                  <p className="font-medium text-foreground">{selectedAppointment.patientName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Doctor</p>
+                  <p className="font-medium text-foreground">{selectedAppointment.doctorName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Department</p>
+                  <p className="font-medium text-foreground">{selectedAppointment.department}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Date & Time</p>
+                  <p className="font-medium text-foreground">{selectedAppointment.date} at {selectedAppointment.time}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm text-muted-foreground">Reason</p>
+                <p className="font-medium text-foreground">{selectedAppointment.reason}</p>
+              </div>
+
+              {selectedAppointment.notes && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Notes</p>
+                  <p className="text-foreground">{selectedAppointment.notes}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm text-muted-foreground">Created</p>
+                <p className="text-foreground">{selectedAppointment.createdAt}</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedAppointment(null)}
+              className="mt-6 w-full cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
