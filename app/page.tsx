@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function HomePage() {
   const { isAuthenticated, user } = useAuth();
@@ -32,6 +33,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <ThemeToggle />
               {isAuthenticated ? (
                 <Link
                   href={getDashboardLink()}

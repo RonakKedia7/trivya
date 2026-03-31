@@ -1,62 +1,85 @@
-"use client"
+"use client";
 
-import { useAuth } from "@/context/AuthContext"
-import { mockAppointments, mockDoctors, mockMedicalRecords } from "@/lib/mock-data"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Calendar, FileText, Clock, User, ArrowRight, Activity } from "lucide-react"
-import Link from "next/link"
+import { useAuth } from "@/context/AuthContext";
+import {
+  mockAppointments,
+  mockDoctors,
+  mockMedicalRecords,
+} from "@/lib/mock-data";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Calendar,
+  FileText,
+  Clock,
+  User,
+  ArrowRight,
+  Activity,
+} from "lucide-react";
+import Link from "next/link";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function PatientDashboard() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   const myAppointments = mockAppointments.filter(
-    (apt) => apt.patientId === user?.id
-  )
+    (apt) => apt.patientId === user?.id,
+  );
 
   const upcomingAppointments = myAppointments
     .filter((apt) => apt.status === "scheduled")
-    .slice(0, 3)
+    .slice(0, 3);
 
   const myRecords = mockMedicalRecords.filter(
-    (record) => record.patientId === user?.id
-  )
+    (record) => record.patientId === user?.id,
+  );
 
-  const recentRecords = myRecords.slice(0, 3)
+  const recentRecords = myRecords.slice(0, 3);
 
   const getDoctorName = (doctorId: string) => {
-    const doctor = mockDoctors.find((d) => d.id === doctorId)
-    return doctor ? `Dr. ${doctor.name}` : "Unknown Doctor"
-  }
+    const doctor = mockDoctors.find((d) => d.id === doctorId);
+    return doctor ? `Dr. ${doctor.name}` : "Unknown Doctor";
+  };
 
   const getDoctorSpecialization = (doctorId: string) => {
-    const doctor = mockDoctors.find((d) => d.id === doctorId)
-    return doctor?.specialization || "General"
-  }
+    const doctor = mockDoctors.find((d) => d.id === doctorId);
+    return doctor?.specialization || "General";
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "scheduled":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
       case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
       case "cancelled":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Welcome back, {user?.name}
-        </h1>
-        <p className="text-muted-foreground">
-          Manage your health and appointments
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Welcome back, {user?.name}
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your health and appointments
+          </p>
+        </div>
+        <div className="hidden lg:block">
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -72,9 +95,7 @@ export default function PatientDashboard() {
             <div className="text-2xl font-bold text-foreground">
               {upcomingAppointments.length}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Scheduled visits
-            </p>
+            <p className="text-xs text-muted-foreground">Scheduled visits</p>
           </CardContent>
         </Card>
 
@@ -122,10 +143,13 @@ export default function PatientDashboard() {
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
               {upcomingAppointments.length > 0
-                ? new Date(upcomingAppointments[0].date).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })
+                ? new Date(upcomingAppointments[0].date).toLocaleDateString(
+                    "en-US",
+                    {
+                      month: "short",
+                      day: "numeric",
+                    },
+                  )
                 : "None"}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -158,7 +182,9 @@ export default function PatientDashboard() {
             {upcomingAppointments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Calendar className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">No upcoming appointments</p>
+                <p className="text-muted-foreground">
+                  No upcoming appointments
+                </p>
                 <Link href="/patient/find-doctors" className="mt-4">
                   <Button>Book an Appointment</Button>
                 </Link>
@@ -185,11 +211,14 @@ export default function PatientDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-foreground">
-                        {new Date(appointment.date).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                        {new Date(appointment.date).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          },
+                        )}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {appointment.time}
@@ -236,10 +265,13 @@ export default function PatientDashboard() {
                         {record.diagnosis}
                       </p>
                       <Badge variant="secondary">
-                        {new Date(record.visitDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        {new Date(record.visitDate).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                          },
+                        )}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2">
@@ -265,25 +297,37 @@ export default function PatientDashboard() {
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Link href="/patient/find-doctors">
-              <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex-col gap-2"
+              >
                 <User className="h-6 w-6" />
                 <span>Find a Doctor</span>
               </Button>
             </Link>
             <Link href="/patient/appointments">
-              <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex-col gap-2"
+              >
                 <Calendar className="h-6 w-6" />
                 <span>My Appointments</span>
               </Button>
             </Link>
             <Link href="/patient/medical-records">
-              <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex-col gap-2"
+              >
                 <FileText className="h-6 w-6" />
                 <span>Medical Records</span>
               </Button>
             </Link>
             <Link href="/patient/profile">
-              <Button variant="outline" className="w-full h-auto py-4 flex-col gap-2">
+              <Button
+                variant="outline"
+                className="w-full h-auto py-4 flex-col gap-2"
+              >
                 <Activity className="h-6 w-6" />
                 <span>Update Profile</span>
               </Button>
@@ -292,5 +336,5 @@ export default function PatientDashboard() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

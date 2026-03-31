@@ -16,6 +16,7 @@ import {
   Activity,
   Search,
 } from "lucide-react";
+import ThemeToggle from "@/components/theme-toggle";
 
 const navItems = [
   { href: "/patient", label: "Dashboard", icon: LayoutDashboard },
@@ -57,7 +58,7 @@ export default function PatientLayout({
   }
 
   return (
-    <div className="flex h-screen bg-muted/30">
+    <div className="flex h-screen bg-background">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -119,7 +120,7 @@ export default function PatientLayout({
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-6">
+        <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-6 lg:hidden">
           <Button
             variant="ghost"
             size="icon"
@@ -133,6 +134,7 @@ export default function PatientLayout({
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
               <User className="h-4 w-4 text-primary" />
             </div>
