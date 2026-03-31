@@ -28,8 +28,8 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex size-20 items-center justify-center rounded-lg">
-                <img src="/logo.png" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg sm:h-14 sm:w-14">
+                <img src="/logo.png" alt="Trivya Care logo" />
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -388,8 +388,8 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="flex items-center gap-2">
-              <div className="flex size-20 items-center justify-center rounded-lg">
-                <img src="/logo.png" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg sm:h-14 sm:w-14">
+                <img src="/logo.png" alt="Trivya Care logo" />
               </div>
             </div>
             <p className="text-sm text-muted-foreground">

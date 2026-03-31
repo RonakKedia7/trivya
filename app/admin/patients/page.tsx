@@ -1,11 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { mockPatients, mockAppointments } from '@/lib/mock-data';
+import { mockPatients } from '@/lib/mock-data';
+import { Appointment } from '@/lib/types';
+import { getAppointments } from '@/lib/storage';
 
 export default function AdminPatientsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+
+  useEffect(() => {
+    setAppointments(getAppointments());
+  }, []);
 
   const filteredPatients = mockPatients.filter(patient =>
     patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -13,9 +20,13 @@ export default function AdminPatientsPage() {
     patient.phone?.includes(searchQuery)
   );
 
-  const getPatientAppointmentCount = (patientId: string) => {
-    return mockAppointments.filter(a => a.patientId === patientId).length;
-  };
+  const appointmentCountByPatientId = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const apt of appointments) {
+      map[apt.patientId] = (map[apt.patientId] ?? 0) + 1;
+    }
+    return map;
+  }, [appointments]);
 
   return (
     <div>
@@ -76,7 +87,7 @@ export default function AdminPatientsPage() {
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">
-                    {getPatientAppointmentCount(patient.id)} appointments
+                    {(appointmentCountByPatientId[patient.id] ?? 0)} appointments
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <Link

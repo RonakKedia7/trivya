@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { mockDoctors, mockAppointments } from "@/lib/mock-data"
+import { mockDoctors } from "@/lib/mock-data"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,11 +21,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Search, User, Calendar, Clock, Star, MapPin } from "lucide-react"
 import { Appointment } from "@/lib/types"
+import { DatePicker } from "@/components/ui/date-picker"
+import { getAppointments, setAppointments as persistAppointments } from "@/lib/storage"
 
 export default function FindDoctorsPage() {
   const { user } = useAuth()
@@ -36,7 +37,11 @@ export default function FindDoctorsPage() {
   const [appointmentTime, setAppointmentTime] = useState("")
   const [appointmentReason, setAppointmentReason] = useState("")
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false)
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments)
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+
+  useEffect(() => {
+    setAppointments(getAppointments())
+  }, [])
 
   const specializations = [...new Set(mockDoctors.map((d) => d.specialization))]
 
@@ -67,17 +72,26 @@ export default function FindDoctorsPage() {
   const handleBookAppointment = () => {
     if (!selectedDoctor || !appointmentDate || !appointmentTime || !user) return
 
+    const doctor = mockDoctors.find((d) => d.id === selectedDoctor)
+    const createdAt = new Date().toISOString().split("T")[0]
+
     const newAppointment: Appointment = {
       id: `apt-${Date.now()}`,
       patientId: user.id,
+      patientName: user.name,
       doctorId: selectedDoctor,
+      doctorName: doctor?.name || "Unknown",
+      department: doctor?.department || "General Medicine",
       date: appointmentDate,
       time: appointmentTime,
       status: "scheduled",
       reason: appointmentReason || "General Consultation",
+      createdAt,
     }
 
-    setAppointments([...appointments, newAppointment])
+    const next = [newAppointment, ...appointments]
+    setAppointments(next)
+    persistAppointments([newAppointment, ...getAppointments()])
     setBookingDialogOpen(false)
     setSelectedDoctor(null)
     setAppointmentDate("")
@@ -117,7 +131,7 @@ export default function FindDoctorsPage() {
               />
             </div>
             <Select value={specialization} onValueChange={setSpecialization}>
-              <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectTrigger className="w-full sm:w-[220px]">
                 <SelectValue placeholder="Specialization" />
               </SelectTrigger>
               <SelectContent>
@@ -206,12 +220,11 @@ export default function FindDoctorsPage() {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="date">Select Date</Label>
-              <Input
-                id="date"
-                type="date"
+              <DatePicker
                 value={appointmentDate}
-                onChange={(e) => setAppointmentDate(e.target.value)}
-                min={new Date().toISOString().split("T")[0]}
+                onChange={setAppointmentDate}
+                placeholder="Select appointment date"
+                minDate={new Date()}
               />
             </div>
             <div className="grid gap-2">

@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { mockAppointments, mockDoctors } from "@/lib/mock-data"
+import { mockDoctors } from "@/lib/mock-data"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,12 +21,18 @@ import {
 import { Calendar, Clock, User, X } from "lucide-react"
 import Link from "next/link"
 import { Appointment } from "@/lib/types"
+import { getAppointments, setAppointments as persistAppointments } from "@/lib/storage"
 
 export default function PatientAppointmentsPage() {
   const { user } = useAuth()
   const [appointments, setAppointments] = useState<Appointment[]>(
-    mockAppointments.filter((apt) => apt.patientId === user?.id)
+    []
   )
+
+  useEffect(() => {
+    const apts = getAppointments().filter((apt) => apt.patientId === user?.id)
+    setAppointments(apts)
+  }, [user?.id])
 
   const upcomingAppointments = appointments.filter(
     (apt) => apt.status === "scheduled"
@@ -56,10 +62,15 @@ export default function PatientAppointmentsPage() {
   }
 
   const handleCancelAppointment = (appointmentId: string) => {
-    setAppointments(
-      appointments.map((apt) =>
-        apt.id === appointmentId ? { ...apt, status: "cancelled" } : apt
-      )
+    const next = appointments.map((apt) =>
+      apt.id === appointmentId ? { ...apt, status: "cancelled" } : apt,
+    )
+    setAppointments(next)
+    const all = getAppointments()
+    persistAppointments(
+      all.map((apt) =>
+        apt.id === appointmentId ? { ...apt, status: "cancelled" } : apt,
+      ),
     )
   }
 

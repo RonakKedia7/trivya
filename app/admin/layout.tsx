@@ -59,7 +59,7 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -68,13 +68,13 @@ export default function AdminLayout({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-border bg-card transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 transform flex-col border-r border-border bg-card transition-transform duration-200 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
           <Link href="/admin" className="flex items-center gap-2">
-            <div className="flex size-16 items-center justify-center rounded-lg">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg">
               <img src="/logo.png" alt="Logo" />
             </div>
           </Link>
@@ -89,7 +89,7 @@ export default function AdminLayout({
           </Button>
         </div>
 
-        <nav className="flex flex-col gap-1 p-4">
+        <nav className="flex-1 overflow-y-auto p-4">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -113,7 +113,7 @@ export default function AdminLayout({
           })}
         </nav>
 
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="border-t border-border p-4">
           <Button
             variant="outline"
             className="w-full justify-start gap-2"
@@ -125,7 +125,7 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-6 lg:hidden">
           <Button
             variant="ghost"
@@ -136,7 +136,7 @@ export default function AdminLayout({
             <Menu className="h-5 w-5" />
           </Button>
 
-          <div className="flex size-16 items-center justify-center rounded-lg">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg">
             <img src="/logo.png" alt="Logo" />
           </div>
 
@@ -155,7 +155,9 @@ export default function AdminLayout({
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 lg:p-6">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </main>
       </div>
     </div>
   );

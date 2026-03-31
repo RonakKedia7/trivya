@@ -1,14 +1,21 @@
 'use client';
 
-import { use } from 'react';
+import { use, useMemo } from 'react';
 import Link from 'next/link';
-import { mockPatients, mockAppointments, mockMedicalRecords } from '@/lib/mock-data';
+import { mockPatients } from '@/lib/mock-data';
+import { getAppointments, getMedicalRecords } from '@/lib/storage';
 
 export default function PatientDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const patient = mockPatients.find(p => p.id === id);
-  const patientAppointments = mockAppointments.filter(a => a.patientId === id);
-  const patientRecords = mockMedicalRecords.filter(r => r.patientId === id);
+  const patientAppointments = useMemo(
+    () => getAppointments().filter((a) => a.patientId === id),
+    [id],
+  );
+  const patientRecords = useMemo(
+    () => getMedicalRecords().filter((r) => r.patientId === id),
+    [id],
+  );
 
   if (!patient) {
     return (
@@ -147,11 +154,11 @@ export default function PatientDetailsPage({ params }: { params: Promise<{ id: s
                     <div className="mb-4 flex items-start justify-between">
                       <div>
                         <p className="font-medium text-foreground">{record.diagnosis}</p>
-                        <p className="text-sm text-muted-foreground">By {record.doctorName} on {record.date}</p>
+                        <p className="text-sm text-muted-foreground">By {record.doctorName} on {record.visitDate}</p>
                       </div>
                     </div>
                     {record.vitals && (
-                      <div className="mb-4 grid grid-cols-2 gap-4 rounded-lg bg-secondary/50 p-4 sm:grid-cols-4">
+                      <div className="mb-4 grid gap-4 rounded-lg bg-secondary/50 p-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
                           <p className="text-xs text-muted-foreground">Blood Pressure</p>
                           <p className="font-medium text-foreground">{record.vitals.bloodPressure}</p>
@@ -172,8 +179,12 @@ export default function PatientDetailsPage({ params }: { params: Promise<{ id: s
                     )}
                     <div className="space-y-2">
                       <div>
+                        <p className="text-sm font-medium text-foreground">Treatment:</p>
+                        <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.treatment}</p>
+                      </div>
+                      <div>
                         <p className="text-sm font-medium text-foreground">Prescription:</p>
-                        <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.prescription}</p>
+                        <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.prescription || "—"}</p>
                       </div>
                       {record.notes && (
                         <div>

@@ -5,6 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { UserRole } from "@/lib/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -78,8 +85,8 @@ export default function RegisterPage() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex cursor-pointer items-center gap-2">
-            <div className="flex size-16 items-center justify-center rounded-lg">
-              <img src="/logo.png" alt="" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg sm:h-12 sm:w-12">
+              <img src="/logo.png" alt="Trivya Care logo" />
             </div>
           </Link>
           <Link
@@ -174,17 +181,24 @@ export default function RegisterPage() {
                 >
                   Account Type
                 </label>
-                <select
-                  id="role"
-                  name="role"
+                <Select
                   value={formData.role}
-                  onChange={handleChange}
-                  className="mt-1 block w-full cursor-pointer rounded-lg border border-input bg-background px-4 py-3 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      role: value as UserRole,
+                    }))
+                  }
                 >
-                  <option value="patient">Patient</option>
-                  <option value="doctor">Doctor</option>
-                  <option value="admin">Administrator</option>
-                </select>
+                  <SelectTrigger id="role" className="mt-1 h-12">
+                    <SelectValue placeholder="Select account type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="patient">Patient</SelectItem>
+                    <SelectItem value="doctor">Doctor</SelectItem>
+                    <SelectItem value="admin">Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>

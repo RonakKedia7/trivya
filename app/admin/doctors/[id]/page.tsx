@@ -1,13 +1,17 @@
 'use client';
 
-import { use } from 'react';
+import { use, useMemo } from 'react';
 import Link from 'next/link';
-import { mockDoctors, mockAppointments } from '@/lib/mock-data';
+import { mockDoctors } from '@/lib/mock-data';
+import { getAppointments } from '@/lib/storage';
 
 export default function DoctorDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const doctor = mockDoctors.find(d => d.id === id);
-  const doctorAppointments = mockAppointments.filter(a => a.doctorId === id);
+  const doctorAppointments = useMemo(
+    () => getAppointments().filter((a) => a.doctorId === id),
+    [id],
+  );
 
   if (!doctor) {
     return (

@@ -1,16 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { mockDoctors, mockAppointments, mockMedicalRecords, mockPatients } from '@/lib/mock-data';
+import { mockDoctors, mockPatients } from '@/lib/mock-data';
+import { Appointment, MedicalRecord } from '@/lib/types';
+import { getAppointments, getMedicalRecords } from '@/lib/storage';
 
 export default function DoctorHistoryPage() {
   const { user } = useAuth();
   const currentDoctor = mockDoctors.find(d => d.email === user?.email) || mockDoctors[0];
   
-  const doctorAppointments = mockAppointments.filter(a => a.doctorId === currentDoctor.id);
-  const uniquePatientIds = [...new Set(doctorAppointments.map(a => a.patientId))];
-  const doctorPatients = mockPatients.filter(p => uniquePatientIds.includes(p.id));
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [records, setRecords] = useState<MedicalRecord[]>([]);
+
+  useEffect(() => {
+    setAppointments(getAppointments());
+    setRecords(getMedicalRecords());
+  }, []);
+
+  const doctorAppointments = useMemo(
+    () => appointments.filter((a) => a.doctorId === currentDoctor.id),
+    [appointments, currentDoctor.id],
+  );
+
+  const uniquePatientIds = useMemo(
+    () => [...new Set(doctorAppointments.map((a) => a.patientId))],
+    [doctorAppointments],
+  );
+
+  const doctorPatients = useMemo(() => {
+    const fromMocks = mockPatients.filter((p) => uniquePatientIds.includes(p.id));
+    const missingIds = uniquePatientIds.filter(
+      (id) => !fromMocks.some((p) => p.id === id),
+    );
+    const fromAppointments = missingIds.map((id) => {
+      const sample = doctorAppointments.find((a) => a.patientId === id);
+      return {
+        id,
+        name: sample?.patientName ?? 'Unknown Patient',
+        email: '—',
+        role: 'patient' as const,
+        phone: '—',
+        dateOfBirth: '—',
+        gender: 'other' as const,
+        bloodGroup: '—',
+        address: '—',
+        emergencyContact: '—',
+        createdAt: '—',
+      };
+    });
+    return [...fromMocks, ...fromAppointments];
+  }, [doctorAppointments, uniquePatientIds]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
@@ -25,11 +65,11 @@ export default function DoctorHistoryPage() {
   };
 
   const getPatientRecords = (patientId: string) => {
-    return mockMedicalRecords.filter(r => r.patientId === patientId && r.doctorId === currentDoctor.id);
+    return records.filter(r => r.patientId === patientId && r.doctorId === currentDoctor.id);
   };
 
   const selectedPatientData = selectedPatient 
-    ? mockPatients.find(p => p.id === selectedPatient) 
+    ? doctorPatients.find(p => p.id === selectedPatient) 
     : null;
 
   const getStatusColor = (status: string) => {
@@ -148,11 +188,11 @@ export default function DoctorHistoryPage() {
                         <div className="mb-3 flex items-start justify-between">
                           <div>
                             <p className="font-medium text-foreground">{record.diagnosis}</p>
-                            <p className="text-sm text-muted-foreground">{record.date}</p>
+                            <p className="text-sm text-muted-foreground">{record.visitDate}</p>
                           </div>
                         </div>
                         {record.vitals && (
-                          <div className="mb-3 grid grid-cols-2 gap-3 rounded-lg bg-secondary/50 p-3 sm:grid-cols-4">
+                          <div className="mb-3 grid gap-3 rounded-lg bg-secondary/50 p-3 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
                               <p className="text-xs text-muted-foreground">BP</p>
                               <p className="text-sm font-medium text-foreground">{record.vitals.bloodPressure}</p>
@@ -172,8 +212,12 @@ export default function DoctorHistoryPage() {
                           </div>
                         )}
                         <div>
+                          <p className="text-sm font-medium text-foreground">Treatment:</p>
+                          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.treatment}</p>
+                        </div>
+                        <div className="mt-3">
                           <p className="text-sm font-medium text-foreground">Prescription:</p>
-                          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.prescription}</p>
+                          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.prescription || '—'}</p>
                         </div>
                         {record.notes && (
                           <div className="mt-2">

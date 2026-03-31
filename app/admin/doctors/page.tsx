@@ -4,6 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { mockDoctors, departments } from '@/lib/mock-data';
 import { Doctor } from '@/lib/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function AdminDoctorsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>(mockDoctors);
@@ -92,19 +99,27 @@ export default function AdminDoctorsPage() {
             placeholder="Search doctors..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+            className="h-10 w-full rounded-lg border border-input bg-background px-4 text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
           />
         </div>
-        <select
-          value={selectedDepartment}
-          onChange={(e) => setSelectedDepartment(e.target.value)}
-          className="cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+        <Select
+          value={selectedDepartment || 'all'}
+          onValueChange={(value) =>
+            setSelectedDepartment(value === 'all' ? '' : value)
+          }
         >
-          <option value="">All Departments</option>
-          {departments.map((dept) => (
-            <option key={dept} value={dept}>{dept}</option>
-          ))}
-        </select>
+          <SelectTrigger className="sm:w-[240px]">
+            <SelectValue placeholder="All Departments" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Departments</SelectItem>
+            {departments.map((dept) => (
+              <SelectItem key={dept} value={dept}>
+                {dept}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Doctors Grid */}
@@ -227,16 +242,28 @@ export default function AdminDoctorsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground">Department</label>
-                <select
-                  value={newDoctor.department}
-                  onChange={(e) => setNewDoctor({ ...newDoctor, department: e.target.value, specialization: e.target.value })}
-                  className="mt-1 w-full cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+                <Select
+                  value={newDoctor.department || 'none'}
+                  onValueChange={(value) =>
+                    setNewDoctor({
+                      ...newDoctor,
+                      department: value === 'none' ? '' : value,
+                      specialization: value === 'none' ? '' : value,
+                    })
+                  }
                 >
-                  <option value="">Select department</option>
-                  {departments.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select department</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground">Qualification</label>
@@ -248,7 +275,7 @@ export default function AdminDoctorsPage() {
                   placeholder="e.g., MD, FACC"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-foreground">Experience (years)</label>
                   <input
@@ -332,15 +359,27 @@ export default function AdminDoctorsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground">Department</label>
-                <select
+                <Select
                   value={editingDoctor.department}
-                  onChange={(e) => setEditingDoctor({ ...editingDoctor, department: e.target.value, specialization: e.target.value })}
-                  className="mt-1 w-full cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+                  onValueChange={(value) =>
+                    setEditingDoctor({
+                      ...editingDoctor,
+                      department: value,
+                      specialization: value,
+                    })
+                  }
                 >
-                  {departments.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground">Qualification</label>
@@ -351,7 +390,7 @@ export default function AdminDoctorsPage() {
                   className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-foreground">Experience (years)</label>
                   <input

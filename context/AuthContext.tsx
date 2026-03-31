@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole, Doctor, Patient, Admin } from '@/lib/types';
+import { User, UserRole } from '@/lib/types';
 import { mockDoctors, mockPatients, mockAdmin } from '@/lib/mock-data';
 
 interface AuthContextType {
@@ -36,8 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, _password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    void password;
     
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));

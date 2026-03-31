@@ -1,16 +1,29 @@
 'use client';
 
-import { useState } from 'react';
-import { mockAppointments, departments } from '@/lib/mock-data';
-import { Appointment, AppointmentStatus } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { departments } from '@/lib/mock-data';
+import { Appointment } from '@/lib/types';
+import { DatePicker } from '@/components/ui/date-picker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { getAppointments } from '@/lib/storage';
 
 export default function AdminAppointmentsPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<string>('');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+
+  useEffect(() => {
+    setAppointments(getAppointments());
+  }, []);
 
   const filteredAppointments = appointments.filter(apt => {
     const matchesSearch = apt.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -50,39 +63,51 @@ export default function AdminAppointmentsPage() {
           placeholder="Search patient or doctor..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="rounded-lg border border-input bg-background px-4 py-2 text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+          className="h-10 rounded-lg border border-input bg-background px-4 text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
         />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+        <Select
+          value={statusFilter || 'all'}
+          onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value)}
         >
-          <option value="">All Statuses</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="in-progress">In Progress</option>
-        </select>
-        <select
-          value={departmentFilter}
-          onChange={(e) => setDepartmentFilter(e.target.value)}
-          className="cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+          <SelectTrigger>
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={departmentFilter || 'all'}
+          onValueChange={(value) =>
+            setDepartmentFilter(value === 'all' ? '' : value)
+          }
         >
-          <option value="">All Departments</option>
-          {departments.map((dept) => (
-            <option key={dept} value={dept}>{dept}</option>
-          ))}
-        </select>
-        <input
-          type="date"
+          <SelectTrigger>
+            <SelectValue placeholder="All Departments" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Departments</SelectItem>
+            {departments.map((dept) => (
+              <SelectItem key={dept} value={dept}>
+                {dept}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <DatePicker
           value={dateFilter}
-          onChange={(e) => setDateFilter(e.target.value)}
-          className="cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+          onChange={setDateFilter}
+          placeholder="Filter by date"
+          className="w-full"
         />
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">Total</p>
           <p className="text-2xl font-bold text-foreground">{filteredAppointments.length}</p>
@@ -162,7 +187,7 @@ export default function AdminAppointmentsPage() {
       {/* Appointment Details Modal */}
       {selectedAppointment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-card p-6">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-card p-6">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground">Appointment Details</h2>
               <button

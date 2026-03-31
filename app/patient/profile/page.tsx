@@ -15,8 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { User, Mail, Phone, Calendar, MapPin, Heart, Save } from "lucide-react"
+import { User, Mail, Phone, MapPin, Heart, Save } from "lucide-react"
 import { Patient } from "@/lib/types"
+import { DatePicker } from "@/components/ui/date-picker"
 
 export default function PatientProfilePage() {
   const { user } = useAuth()
@@ -119,17 +120,14 @@ export default function PatientProfilePage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="dateOfBirth">Date of Birth</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="dateOfBirth"
-                  name="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth || ""}
-                  onChange={handleInputChange}
-                  className="pl-9"
-                />
-              </div>
+              <DatePicker
+                value={formData.dateOfBirth || ""}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, dateOfBirth: value }))
+                }
+                placeholder="Select date of birth"
+                maxDate={new Date()}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="gender">Gender</Label>

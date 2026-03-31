@@ -2,26 +2,44 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { mockAppointments, mockDoctors } from "@/lib/mock-data";
+import { mockDoctors } from "@/lib/mock-data";
 import ThemeToggle from "@/components/theme-toggle";
+import { useEffect, useMemo, useState } from "react";
+import { Appointment } from "@/lib/types";
+import { getAppointments } from "@/lib/storage";
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
   const today = "2026-03-30";
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   // Get current doctor data
   const currentDoctor =
     mockDoctors.find((d) => d.email === user?.email) || mockDoctors[0];
-  const doctorAppointments = mockAppointments.filter(
-    (a) => a.doctorId === currentDoctor.id,
+  
+  useEffect(() => {
+    setAppointments(getAppointments());
+  }, []);
+
+  const doctorAppointments = useMemo(
+    () => appointments.filter((a) => a.doctorId === currentDoctor.id),
+    [appointments, currentDoctor.id],
   );
 
-  const todayAppointments = doctorAppointments.filter((a) => a.date === today);
-  const upcomingAppointments = doctorAppointments
-    .filter((a) => a.date >= today && a.status === "scheduled")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const completedAppointments = doctorAppointments.filter(
-    (a) => a.status === "completed",
+  const todayAppointments = useMemo(
+    () => doctorAppointments.filter((a) => a.date === today),
+    [doctorAppointments, today],
+  );
+
+  const upcomingAppointments = useMemo(() => {
+    return doctorAppointments
+      .filter((a) => a.date >= today && a.status === "scheduled")
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [doctorAppointments, today]);
+
+  const completedAppointments = useMemo(
+    () => doctorAppointments.filter((a) => a.status === "completed"),
+    [doctorAppointments],
   );
 
   const getStatusColor = (status: string) => {

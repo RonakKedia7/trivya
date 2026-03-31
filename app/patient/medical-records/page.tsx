@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "@/context/AuthContext"
-import { mockMedicalRecords, mockDoctors } from "@/lib/mock-data"
+import { mockDoctors } from "@/lib/mock-data"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -11,13 +11,19 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { FileText, User, Calendar, Pill, Stethoscope } from "lucide-react"
+import { useEffect, useState } from "react"
+import { MedicalRecord } from "@/lib/types"
+import { getMedicalRecords } from "@/lib/storage"
 
 export default function PatientMedicalRecordsPage() {
   const { user } = useAuth()
 
-  const myRecords = mockMedicalRecords.filter(
-    (record) => record.patientId === user?.id
-  )
+  const [myRecords, setMyRecords] = useState<MedicalRecord[]>([])
+
+  useEffect(() => {
+    const records = getMedicalRecords().filter((r) => r.patientId === user?.id)
+    setMyRecords(records)
+  }, [user?.id])
 
   const getDoctorName = (doctorId: string) => {
     const doctor = mockDoctors.find((d) => d.id === doctorId)

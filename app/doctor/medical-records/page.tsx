@@ -1,25 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { mockDoctors, mockAppointments, mockMedicalRecords, mockPatients } from '@/lib/mock-data';
+import { mockDoctors } from '@/lib/mock-data';
 import { MedicalRecord } from '@/lib/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { getAppointments, getMedicalRecords, setMedicalRecords } from '@/lib/storage';
 
 export default function DoctorMedicalRecordsPage() {
   const { user } = useAuth();
   const currentDoctor = mockDoctors.find(d => d.email === user?.email) || mockDoctors[0];
   
-  const doctorAppointments = mockAppointments.filter(
+  const doctorAppointments = getAppointments().filter(
     a => a.doctorId === currentDoctor.id && a.status === 'completed'
   );
   
-  const [records, setRecords] = useState<MedicalRecord[]>(
-    mockMedicalRecords.filter(r => r.doctorId === currentDoctor.id)
-  );
+  const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [showNewRecordForm, setShowNewRecordForm] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<string>('');
   const [newRecord, setNewRecord] = useState({
     diagnosis: '',
+    treatment: '',
     prescription: '',
     notes: '',
     vitals: {
@@ -30,13 +37,18 @@ export default function DoctorMedicalRecordsPage() {
     },
   });
 
+  useEffect(() => {
+    const stored = getMedicalRecords().filter((r) => r.doctorId === currentDoctor.id);
+    setRecords(stored);
+  }, [currentDoctor.id]);
+
   const getAppointmentWithoutRecord = () => {
     const recordedAppointmentIds = records.map(r => r.appointmentId);
     return doctorAppointments.filter(a => !recordedAppointmentIds.includes(a.id));
   };
 
   const handleCreateRecord = () => {
-    const appointment = mockAppointments.find(a => a.id === selectedAppointment);
+    const appointment = getAppointments().find(a => a.id === selectedAppointment);
     if (!appointment) return;
 
     const record: MedicalRecord = {
@@ -46,18 +58,24 @@ export default function DoctorMedicalRecordsPage() {
       patientName: appointment.patientName,
       doctorId: currentDoctor.id,
       doctorName: currentDoctor.name,
-      date: appointment.date,
+      visitDate: appointment.date,
       diagnosis: newRecord.diagnosis,
+      treatment: newRecord.treatment,
       prescription: newRecord.prescription,
       notes: newRecord.notes,
+      finalized: true,
+      updatedAt: new Date().toISOString(),
       vitals: newRecord.vitals.bloodPressure ? newRecord.vitals : undefined,
     };
 
-    setRecords([record, ...records]);
+    const next = [record, ...records];
+    setRecords(next);
+    setMedicalRecords([record, ...getMedicalRecords()]);
     setShowNewRecordForm(false);
     setSelectedAppointment('');
     setNewRecord({
       diagnosis: '',
+      treatment: '',
       prescription: '',
       notes: '',
       vitals: {
@@ -99,7 +117,7 @@ export default function DoctorMedicalRecordsPage() {
               <div className="mb-4 flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold text-foreground">{record.patientName}</h3>
-                  <p className="text-sm text-muted-foreground">{record.date}</p>
+                  <p className="text-sm text-muted-foreground">{record.visitDate}</p>
                 </div>
                 <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                   {record.diagnosis}
@@ -107,7 +125,7 @@ export default function DoctorMedicalRecordsPage() {
               </div>
 
               {record.vitals && (
-                <div className="mb-4 grid grid-cols-2 gap-4 rounded-lg bg-secondary/50 p-4 sm:grid-cols-4">
+                <div className="mb-4 grid gap-4 rounded-lg bg-secondary/50 p-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Blood Pressure</p>
                     <p className="font-medium text-foreground">{record.vitals.bloodPressure}</p>
@@ -129,8 +147,16 @@ export default function DoctorMedicalRecordsPage() {
 
               <div className="space-y-3">
                 <div>
+                  <p className="text-sm font-medium text-foreground">Treatment:</p>
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.treatment}</p>
+                </div>
+                <div>
                   <p className="text-sm font-medium text-foreground">Prescription:</p>
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.prescription}</p>
+                  {record.prescription ? (
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.prescription}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">—</p>
+                  )}
                 </div>
                 {record.notes && (
                   <div>
@@ -175,18 +201,24 @@ export default function DoctorMedicalRecordsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground">Select Appointment</label>
-                <select
-                  value={selectedAppointment}
-                  onChange={(e) => setSelectedAppointment(e.target.value)}
-                  className="mt-1 w-full cursor-pointer rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+                <Select
+                  value={selectedAppointment || 'none'}
+                  onValueChange={(value) =>
+                    setSelectedAppointment(value === 'none' ? '' : value)
+                  }
                 >
-                  <option value="">Select an appointment...</option>
-                  {availableAppointments.map((apt) => (
-                    <option key={apt.id} value={apt.id}>
-                      {apt.patientName} - {apt.date} ({apt.reason})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select an appointment..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select an appointment...</SelectItem>
+                    {availableAppointments.map((apt) => (
+                      <SelectItem key={apt.id} value={apt.id}>
+                        {apt.patientName} - {apt.date} ({apt.reason})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -199,10 +231,21 @@ export default function DoctorMedicalRecordsPage() {
                   placeholder="Enter diagnosis"
                 />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground">Treatment Details</label>
+                <textarea
+                  value={newRecord.treatment}
+                  onChange={(e) => setNewRecord({ ...newRecord, treatment: e.target.value })}
+                  rows={3}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+                  placeholder="Enter treatment plan / details"
+                />
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground">Vitals (Optional)</label>
-                <div className="mt-1 grid grid-cols-2 gap-4">
+                <div className="mt-1 grid gap-4 sm:grid-cols-2">
                   <input
                     type="text"
                     value={newRecord.vitals.bloodPressure}
@@ -277,7 +320,7 @@ export default function DoctorMedicalRecordsPage() {
                 </button>
                 <button
                   onClick={handleCreateRecord}
-                  disabled={!selectedAppointment || !newRecord.diagnosis || !newRecord.prescription}
+                  disabled={!selectedAppointment || !newRecord.diagnosis || !newRecord.treatment}
                   className="flex-1 cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Create Record

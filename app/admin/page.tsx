@@ -1,31 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { mockDoctors, mockPatients, mockAppointments } from "@/lib/mock-data";
+import { mockDoctors, mockPatients } from "@/lib/mock-data";
 import ThemeToggle from "@/components/theme-toggle";
+import { useEffect, useMemo, useState } from "react";
+import { Appointment } from "@/lib/types";
+import { getAppointments } from "@/lib/storage";
 
 export default function AdminDashboard() {
   const today = "2026-03-30";
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
-  const stats = {
-    totalDoctors: mockDoctors.length,
-    totalPatients: mockPatients.length,
-    totalAppointments: mockAppointments.length,
-    todayAppointments: mockAppointments.filter((a) => a.date === today).length,
-    pendingAppointments: mockAppointments.filter(
-      (a) => a.status === "scheduled",
-    ).length,
-    completedAppointments: mockAppointments.filter(
-      (a) => a.status === "completed",
-    ).length,
-  };
+  useEffect(() => {
+    setAppointments(getAppointments());
+  }, []);
 
-  const recentAppointments = mockAppointments
-    .sort(
+  const stats = useMemo(() => {
+    return {
+      totalDoctors: mockDoctors.length,
+      totalPatients: mockPatients.length,
+      totalAppointments: appointments.length,
+      todayAppointments: appointments.filter((a) => a.date === today).length,
+      pendingAppointments: appointments.filter((a) => a.status === "scheduled")
+        .length,
+      completedAppointments: appointments.filter((a) => a.status === "completed")
+        .length,
+    };
+  }, [appointments, today]);
+
+  const recentAppointments = useMemo(() => {
+    return [...appointments]
+      .sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
-    .slice(0, 5);
+      )
+      .slice(0, 5);
+  }, [appointments]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -352,10 +362,7 @@ export default function AdminDashboard() {
                 <span className="text-sm text-muted-foreground">Cancelled</span>
               </div>
               <span className="text-sm font-medium text-foreground">
-                {
-                  mockAppointments.filter((a) => a.status === "cancelled")
-                    .length
-                }
+                {appointments.filter((a) => a.status === "cancelled").length}
               </span>
             </div>
           </div>

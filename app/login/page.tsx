@@ -60,8 +60,8 @@ export default function LoginPage() {
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex cursor-pointer items-center gap-2">
-            <div className="flex size-16 items-center justify-center rounded-lg">
-              <img src="/logo.png" alt="" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg sm:h-12 sm:w-12">
+              <img src="/logo.png" alt="Trivya Care logo" />
             </div>
           </Link>
           <Link
@@ -172,7 +172,9 @@ export default function LoginPage() {
                   <span className="font-medium text-foreground">
                     {account.role}
                   </span>
-                  <span className="text-muted-foreground">{account.email}</span>
+                  <span className="min-w-0 truncate pl-2 text-muted-foreground">
+                    {account.email}
+                  </span>
                 </button>
               ))}
             </div>

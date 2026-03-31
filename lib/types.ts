@@ -72,10 +72,16 @@ export interface MedicalRecord {
   patientName: string;
   doctorId: string;
   doctorName: string;
-  date: string;
+  /** ISO date string (yyyy-MM-dd) of the visit */
+  visitDate: string;
+  /** Short summary shown in record list */
   diagnosis: string;
-  prescription: string;
-  notes: string;
+  /** Treatment plan / details */
+  treatment: string;
+  prescription?: string;
+  notes?: string;
+  finalized?: boolean;
+  updatedAt?: string;
   vitals?: {
     bloodPressure: string;
     temperature: string;

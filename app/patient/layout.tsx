@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export default function PatientLayout({
 }) {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function PatientLayout({
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -69,14 +70,14 @@ export default function PatientLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-card border-r border-border transition-transform duration-200 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 transform flex-col border-r border-border bg-card transition-transform duration-200 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shrink-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
           <Link href="/patient" className="flex items-center gap-2">
-            <div className="flex size-16 items-center justify-center rounded-lg ">
-              <img src="/logo.png" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg">
+              <img src="/logo.png" alt="Logo" />
             </div>
           </Link>
           <Button
@@ -89,21 +90,31 @@ export default function PatientLayout({
           </Button>
         </div>
 
-        <nav className="flex flex-col gap-1 p-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          ))}
+        <nav className="flex-1 overflow-y-auto p-4">
+          {navItems.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/patient" && pathname.startsWith(item.href));
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="border-t border-border p-4">
           <Button
             variant="outline"
             className="w-full justify-start gap-2"
@@ -119,7 +130,7 @@ export default function PatientLayout({
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-6 lg:hidden">
           <Button
             variant="ghost"
@@ -129,8 +140,8 @@ export default function PatientLayout({
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="flex size-16 items-center justify-center rounded-lg ">
-            <img src="/logo.png" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg">
+            <img src="/logo.png" alt="Logo" />
           </div>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
@@ -144,7 +155,9 @@ export default function PatientLayout({
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 lg:p-6">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </main>
       </div>
     </div>
   );

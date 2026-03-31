@@ -1,11 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import {
-  mockAppointments,
-  mockDoctors,
-  mockMedicalRecords,
-} from "@/lib/mock-data";
+import { mockDoctors } from "@/lib/mock-data";
 import {
   Card,
   CardContent,
@@ -25,20 +21,33 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import ThemeToggle from "@/components/theme-toggle";
+import { useEffect, useMemo, useState } from "react";
+import { Appointment, MedicalRecord } from "@/lib/types";
+import { getAppointments, getMedicalRecords } from "@/lib/storage";
 
 export default function PatientDashboard() {
   const { user } = useAuth();
 
-  const myAppointments = mockAppointments.filter(
-    (apt) => apt.patientId === user?.id,
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [records, setRecords] = useState<MedicalRecord[]>([]);
+
+  useEffect(() => {
+    setAppointments(getAppointments());
+    setRecords(getMedicalRecords());
+  }, []);
+
+  const myAppointments = useMemo(
+    () => appointments.filter((apt) => apt.patientId === user?.id),
+    [appointments, user?.id],
   );
 
   const upcomingAppointments = myAppointments
     .filter((apt) => apt.status === "scheduled")
     .slice(0, 3);
 
-  const myRecords = mockMedicalRecords.filter(
-    (record) => record.patientId === user?.id,
+  const myRecords = useMemo(
+    () => records.filter((record) => record.patientId === user?.id),
+    [records, user?.id],
   );
 
   const recentRecords = myRecords.slice(0, 3);
@@ -51,19 +60,6 @@ export default function PatientDashboard() {
   const getDoctorSpecialization = (doctorId: string) => {
     const doctor = mockDoctors.find((d) => d.id === doctorId);
     return doctor?.specialization || "General";
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "scheduled":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-      case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-      case "cancelled":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
-    }
   };
 
   return (
