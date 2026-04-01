@@ -2,13 +2,13 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '@/lib/types';
-import { mockDoctors, mockPatients, mockAdmin } from '@/lib/mock-data';
+import { authService } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (data: RegisterData) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; user?: User }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; user?: User }>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -28,74 +28,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user on mount
-    const storedUser = localStorage.getItem('hms_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Rehydrate from localStorage via the service layer (same as GET /auth/me)
+    authService.getMe().then((res) => {
+      if (res.success && res.data) {
+        setUser(res.data);
+      }
+      setIsLoading(false);
+    });
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; user?: User }> => {
     setIsLoading(true);
-    void password;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Mock authentication - check against mock data
-    let foundUser: User | null = null;
-    
-    if (email === mockAdmin.email) {
-      foundUser = mockAdmin;
-    } else {
-      const doctor = mockDoctors.find(d => d.email === email);
-      if (doctor) {
-        foundUser = doctor;
-      } else {
-        const patient = mockPatients.find(p => p.email === email);
-        if (patient) {
-          foundUser = patient;
-        }
-      }
-    }
-    
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('hms_user', JSON.stringify(foundUser));
+    const res = await authService.login({ email, password });
+    if (res.success && res.data) {
+      setUser(res.data.user as User);
       setIsLoading(false);
-      return true;
+      return { success: true, user: res.data.user as User };
     }
-    
     setIsLoading(false);
-    return false;
+    return { success: false };
   };
 
-  const register = async (data: RegisterData): Promise<boolean> => {
+  const register = async (data: RegisterData): Promise<{ success: boolean; user?: User }> => {
     setIsLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Create new user based on role
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      email: data.email,
+    const res = await authService.register({
       name: data.name,
+      email: data.email,
+      password: data.password,
       role: data.role,
       phone: data.phone,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('hms_user', JSON.stringify(newUser));
+    });
+    if (res.success && res.data) {
+      setUser(res.data.user as User);
+      setIsLoading(false);
+      return { success: true, user: res.data.user as User };
+    }
     setIsLoading(false);
-    return true;
+    return { success: false };
   };
 
+  /**
+   * Calls authService.logout() — which hits POST /auth/logout in production.
+   */
   const logout = () => {
+    authService.logout();
     setUser(null);
-    localStorage.removeItem('hms_user');
   };
 
   return (

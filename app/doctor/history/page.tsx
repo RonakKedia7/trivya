@@ -1,89 +1,91 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { mockDoctors, mockPatients } from '@/lib/mock-data';
+import { appointmentsService, medicalRecordsService, doctorsService } from '@/lib/api';
 import { Appointment, MedicalRecord } from '@/lib/types';
-import { getAppointments, getMedicalRecords } from '@/lib/storage';
+import { Loader2 } from 'lucide-react';
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'scheduled':   return 'bg-chart-1/10 text-chart-1';
+    case 'completed':   return 'bg-success/10 text-success';
+    case 'cancelled':   return 'bg-destructive/10 text-destructive';
+    case 'in-progress': return 'bg-chart-3/10 text-chart-3';
+    default:            return 'bg-muted text-muted-foreground';
+  }
+};
 
 export default function DoctorHistoryPage() {
   const { user } = useAuth();
-  const currentDoctor = mockDoctors.find(d => d.email === user?.email) || mockDoctors[0];
-  
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [records, setRecords] = useState<MedicalRecord[]>([]);
-
-  useEffect(() => {
-    setAppointments(getAppointments());
-    setRecords(getMedicalRecords());
-  }, []);
-
-  const doctorAppointments = useMemo(
-    () => appointments.filter((a) => a.doctorId === currentDoctor.id),
-    [appointments, currentDoctor.id],
-  );
-
-  const uniquePatientIds = useMemo(
-    () => [...new Set(doctorAppointments.map((a) => a.patientId))],
-    [doctorAppointments],
-  );
-
-  const doctorPatients = useMemo(() => {
-    const fromMocks = mockPatients.filter((p) => uniquePatientIds.includes(p.id));
-    const missingIds = uniquePatientIds.filter(
-      (id) => !fromMocks.some((p) => p.id === id),
-    );
-    const fromAppointments = missingIds.map((id) => {
-      const sample = doctorAppointments.find((a) => a.patientId === id);
-      return {
-        id,
-        name: sample?.patientName ?? 'Unknown Patient',
-        email: '—',
-        role: 'patient' as const,
-        phone: '—',
-        dateOfBirth: '—',
-        gender: 'other' as const,
-        bloodGroup: '—',
-        address: '—',
-        emergencyContact: '—',
-        createdAt: '—',
-      };
-    });
-    return [...fromMocks, ...fromAppointments];
-  }, [doctorAppointments, uniquePatientIds]);
-
+  const [doctorId, setDoctorId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
 
-  const filteredPatients = doctorPatients.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.email.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    if (!user) return;
+
+    // Find the doctor record to get the real doctorId
+    doctorsService.getAll({ limit: 100 }).then((res) => {
+      if (!res.success) return;
+      const doctor = res.data.find((d) => d.email === user.email) ?? res.data[0];
+      const dId = doctor?.id ?? user.id;
+      setDoctorId(dId);
+
+      Promise.all([
+        appointmentsService.getMine(user, { limit: 500 }),
+        medicalRecordsService.getByDoctor(dId),
+      ]).then(([aRes, rRes]) => {
+        if (aRes.success) setAppointments(aRes.data);
+        if (rRes.success) setRecords(rRes.data);
+        setIsLoading(false);
+      });
+    });
+  }, [user]);
+
+  // Build unique patients list from appointment data
+  const doctorPatients = useMemo(() => {
+    const seen = new Map<string, { id: string; name: string; email: string; phone: string }>();
+    for (const apt of appointments) {
+      if (!seen.has(apt.patientId)) {
+        seen.set(apt.patientId, {
+          id: apt.patientId,
+          name: apt.patientName,
+          email: '—',
+          phone: '—',
+        });
+      }
+    }
+    return Array.from(seen.values());
+  }, [appointments]);
+
+  const filteredPatients = doctorPatients.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.email.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const getPatientAppointments = (patientId: string) => {
-    return doctorAppointments.filter(a => a.patientId === patientId);
-  };
+  const getPatientAppointments = (patientId: string) =>
+    appointments.filter((a) => a.patientId === patientId);
 
-  const getPatientRecords = (patientId: string) => {
-    return records.filter(r => r.patientId === patientId && r.doctorId === currentDoctor.id);
-  };
+  const getPatientRecords = (patientId: string) =>
+    records.filter((r) => r.patientId === patientId && r.doctorId === doctorId);
 
-  const selectedPatientData = selectedPatient 
-    ? doctorPatients.find(p => p.id === selectedPatient) 
+  const selectedPatientData = selectedPatient
+    ? doctorPatients.find((p) => p.id === selectedPatient)
     : null;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled':
-        return 'bg-chart-1/10 text-chart-1';
-      case 'completed':
-        return 'bg-success/10 text-success';
-      case 'cancelled':
-        return 'bg-destructive/10 text-destructive';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -107,7 +109,7 @@ export default function DoctorHistoryPage() {
             </div>
             <div className="max-h-[calc(100vh-250px)] divide-y divide-border overflow-y-auto">
               {filteredPatients.map((patient) => {
-                const appointments = getPatientAppointments(patient.id);
+                const patApts = getPatientAppointments(patient.id);
                 return (
                   <button
                     key={patient.id}
@@ -121,15 +123,13 @@ export default function DoctorHistoryPage() {
                     </div>
                     <div className="flex-1 overflow-hidden">
                       <p className="truncate font-medium text-foreground">{patient.name}</p>
-                      <p className="text-sm text-muted-foreground">{appointments.length} visits</p>
+                      <p className="text-sm text-muted-foreground">{patApts.length} visits</p>
                     </div>
                   </button>
                 );
               })}
               {filteredPatients.length === 0 && (
-                <div className="p-6 text-center text-muted-foreground">
-                  No patients found.
-                </div>
+                <div className="p-6 text-center text-muted-foreground">No patients found.</div>
               )}
             </div>
           </div>
@@ -147,10 +147,9 @@ export default function DoctorHistoryPage() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-foreground">{selectedPatientData.name}</h2>
-                    <p className="capitalize text-muted-foreground">{selectedPatientData.gender}, {selectedPatientData.bloodGroup}</p>
                     <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <span>{selectedPatientData.email}</span>
-                      <span>{selectedPatientData.phone}</span>
+                      <span>{getPatientAppointments(selectedPatientData.id).length} total visits</span>
+                      <span>{getPatientRecords(selectedPatientData.id).length} medical records</span>
                     </div>
                   </div>
                 </div>
@@ -190,25 +189,16 @@ export default function DoctorHistoryPage() {
                             <p className="font-medium text-foreground">{record.diagnosis}</p>
                             <p className="text-sm text-muted-foreground">{record.visitDate}</p>
                           </div>
+                          {record.finalized && (
+                            <span className="inline-flex rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">Finalized</span>
+                          )}
                         </div>
                         {record.vitals && (
                           <div className="mb-3 grid gap-3 rounded-lg bg-secondary/50 p-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <div>
-                              <p className="text-xs text-muted-foreground">BP</p>
-                              <p className="text-sm font-medium text-foreground">{record.vitals.bloodPressure}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Temp</p>
-                              <p className="text-sm font-medium text-foreground">{record.vitals.temperature}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">HR</p>
-                              <p className="text-sm font-medium text-foreground">{record.vitals.heartRate}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Weight</p>
-                              <p className="text-sm font-medium text-foreground">{record.vitals.weight}</p>
-                            </div>
+                            <div><p className="text-xs text-muted-foreground">BP</p><p className="text-sm font-medium text-foreground">{record.vitals.bloodPressure}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Temp</p><p className="text-sm font-medium text-foreground">{record.vitals.temperature}</p></div>
+                            <div><p className="text-xs text-muted-foreground">HR</p><p className="text-sm font-medium text-foreground">{record.vitals.heartRate}</p></div>
+                            <div><p className="text-xs text-muted-foreground">Weight</p><p className="text-sm font-medium text-foreground">{record.vitals.weight}</p></div>
                           </div>
                         )}
                         <div>

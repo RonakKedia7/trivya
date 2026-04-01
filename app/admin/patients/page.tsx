@@ -2,22 +2,36 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { mockPatients } from '@/lib/mock-data';
-import { Appointment } from '@/lib/types';
-import { getAppointments } from '@/lib/storage';
+import { Loader2 } from 'lucide-react';
+import { patientsService, appointmentsService } from '@/lib/api';
+import { Patient, Appointment } from '@/lib/types';
 
 export default function AdminPatientsPage() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    setAppointments(getAppointments());
+    Promise.all([
+      patientsService.getAll({ limit: 200 }),
+      appointmentsService.getAll({ limit: 500 }),
+    ]).then(([pRes, aRes]) => {
+      if (pRes.success) setPatients(pRes.data);
+      if (aRes.success) setAppointments(aRes.data);
+      setIsLoading(false);
+    });
   }, []);
 
-  const filteredPatients = mockPatients.filter(patient =>
-    patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    patient.phone?.includes(searchQuery)
+  const filteredPatients = useMemo(
+    () =>
+      patients.filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.phone?.includes(searchQuery),
+      ),
+    [patients, searchQuery],
   );
 
   const appointmentCountByPatientId = useMemo(() => {
@@ -48,63 +62,69 @@ export default function AdminPatientsPage() {
 
       {/* Patients Table */}
       <div className="rounded-xl border border-border bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-secondary/50">
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Patient</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contact</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date of Birth</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Blood Group</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Appointments</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredPatients.map((patient) => (
-                <tr key={patient.id} className="hover:bg-secondary/30">
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-chart-2/10 text-sm font-medium text-chart-2">
-                        {patient.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{patient.name}</p>
-                        <p className="text-sm text-muted-foreground capitalize">{patient.gender}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm text-foreground">{patient.email}</p>
-                    <p className="text-sm text-muted-foreground">{patient.phone}</p>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">
-                    {patient.dateOfBirth}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <span className="inline-flex rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
-                      {patient.bloodGroup}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">
-                    {(appointmentCountByPatientId[patient.id] ?? 0)} appointments
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <Link
-                      href={`/admin/patients/${patient.id}`}
-                      className="cursor-pointer text-sm text-primary hover:underline"
-                    >
-                      View Details
-                    </Link>
-                  </td>
+        {isLoading ? (
+          <div className="flex h-64 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border bg-secondary/50">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Patient</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Contact</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date of Birth</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Blood Group</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Appointments</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {filteredPatients.length === 0 && (
-          <div className="py-12 text-center">
-            <p className="text-muted-foreground">No patients found matching your search.</p>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredPatients.map((patient) => (
+                  <tr key={patient.id} className="hover:bg-secondary/30">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-chart-2/10 text-sm font-medium text-chart-2">
+                          {patient.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{patient.name}</p>
+                          <p className="text-sm text-muted-foreground capitalize">{patient.gender}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-foreground">{patient.email}</p>
+                      <p className="text-sm text-muted-foreground">{patient.phone}</p>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">
+                      {patient.dateOfBirth}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span className="inline-flex rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
+                        {patient.bloodGroup}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">
+                      {(appointmentCountByPatientId[patient.id] ?? 0)} appointments
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <Link
+                        href={`/admin/patients/${patient.id}`}
+                        className="cursor-pointer text-sm text-primary hover:underline"
+                      >
+                        View Details
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredPatients.length === 0 && (
+              <div className="py-12 text-center">
+                <p className="text-muted-foreground">No patients found matching your search.</p>
+              </div>
+            )}
           </div>
         )}
       </div>

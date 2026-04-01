@@ -18,26 +18,21 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
-    const success = await login(email, password);
+    const { success, user } = await login(email, password);
 
-    if (success) {
-      // Get user from localStorage to determine redirect
-      const storedUser = localStorage.getItem("hms_user");
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        switch (user.role) {
-          case "admin":
-            router.push("/admin");
-            break;
-          case "doctor":
-            router.push("/doctor");
-            break;
-          case "patient":
-            router.push("/patient");
-            break;
-          default:
-            router.push("/");
-        }
+    if (success && user) {
+      switch (user.role) {
+        case "admin":
+          router.push("/admin");
+          break;
+        case "doctor":
+          router.push("/doctor");
+          break;
+        case "patient":
+          router.push("/patient");
+          break;
+        default:
+          router.push("/");
       }
     } else {
       setError(

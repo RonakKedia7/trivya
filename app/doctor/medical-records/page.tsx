@@ -4,90 +4,78 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { mockDoctors } from '@/lib/mock-data';
 import { MedicalRecord } from '@/lib/types';
+import { medicalRecordsService, appointmentsService } from '@/lib/api';
+import type { CreateMedicalRecordRequest } from '@/lib/api';
+import { Appointment } from '@/lib/types';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { getAppointments, getMedicalRecords, setMedicalRecords } from '@/lib/storage';
+import { Loader2 } from 'lucide-react';
 
 export default function DoctorMedicalRecordsPage() {
   const { user } = useAuth();
-  const currentDoctor = mockDoctors.find(d => d.email === user?.email) || mockDoctors[0];
-  
-  const doctorAppointments = getAppointments().filter(
-    a => a.doctorId === currentDoctor.id && a.status === 'completed'
-  );
-  
+  const currentDoctor = mockDoctors.find(d => d.email === user?.email) ?? mockDoctors[0];
+
   const [records, setRecords] = useState<MedicalRecord[]>([]);
+  const [completedAppointments, setCompletedAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showNewRecordForm, setShowNewRecordForm] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<string>('');
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const [newRecord, setNewRecord] = useState({
-    diagnosis: '',
-    treatment: '',
-    prescription: '',
-    notes: '',
-    vitals: {
-      bloodPressure: '',
-      temperature: '',
-      heartRate: '',
-      weight: '',
-    },
+    diagnosis: '', treatment: '', prescription: '', notes: '',
+    vitals: { bloodPressure: '', temperature: '', heartRate: '', weight: '' },
   });
 
   useEffect(() => {
-    const stored = getMedicalRecords().filter((r) => r.doctorId === currentDoctor.id);
-    setRecords(stored);
-  }, [currentDoctor.id]);
+    if (!user) return;
+    Promise.all([
+      medicalRecordsService.getByDoctor(currentDoctor.id),
+      appointmentsService.getMine(user, { status: 'completed' }),
+    ]).then(([recRes, aptRes]) => {
+      if (recRes.success) setRecords(recRes.data);
+      if (aptRes.success) setCompletedAppointments(aptRes.data);
+      setIsLoading(false);
+    });
+  }, [user, currentDoctor.id]);
 
-  const getAppointmentWithoutRecord = () => {
-    const recordedAppointmentIds = records.map(r => r.appointmentId);
-    return doctorAppointments.filter(a => !recordedAppointmentIds.includes(a.id));
-  };
+  const availableAppointments = completedAppointments.filter(
+    a => !records.some(r => r.appointmentId === a.id)
+  );
 
-  const handleCreateRecord = () => {
-    const appointment = getAppointments().find(a => a.id === selectedAppointment);
+  const handleCreateRecord = async () => {
+    const appointment = completedAppointments.find(a => a.id === selectedAppointmentId);
     if (!appointment) return;
 
-    const record: MedicalRecord = {
-      id: `rec-${Date.now()}`,
-      appointmentId: selectedAppointment,
-      patientId: appointment.patientId,
-      patientName: appointment.patientName,
-      doctorId: currentDoctor.id,
-      doctorName: currentDoctor.name,
-      visitDate: appointment.date,
+    setIsSaving(true);
+    const req: CreateMedicalRecordRequest = {
+      appointmentId: selectedAppointmentId,
       diagnosis: newRecord.diagnosis,
       treatment: newRecord.treatment,
-      prescription: newRecord.prescription,
-      notes: newRecord.notes,
+      prescription: newRecord.prescription || undefined,
+      notes: newRecord.notes || undefined,
       finalized: true,
-      updatedAt: new Date().toISOString(),
       vitals: newRecord.vitals.bloodPressure ? newRecord.vitals : undefined,
     };
 
-    const next = [record, ...records];
-    setRecords(next);
-    setMedicalRecords([record, ...getMedicalRecords()]);
-    setShowNewRecordForm(false);
-    setSelectedAppointment('');
-    setNewRecord({
-      diagnosis: '',
-      treatment: '',
-      prescription: '',
-      notes: '',
-      vitals: {
-        bloodPressure: '',
-        temperature: '',
-        heartRate: '',
-        weight: '',
-      },
+    const res = await medicalRecordsService.create(req, {
+      id: currentDoctor.id,
+      name: currentDoctor.name,
+      patientId: appointment.patientId,
+      patientName: appointment.patientName,
+      date: appointment.date,
     });
+
+    if (res.success) {
+      setRecords(prev => [res.data, ...prev]);
+      setShowNewRecordForm(false);
+      setSelectedAppointmentId('');
+      setNewRecord({ diagnosis: '', treatment: '', prescription: '', notes: '', vitals: { bloodPressure: '', temperature: '', heartRate: '', weight: '' } });
+    }
+    setIsSaving(false);
   };
 
-  const availableAppointments = getAppointmentWithoutRecord();
+  const inputCls = 'mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20';
 
   return (
     <div>
@@ -101,16 +89,17 @@ export default function DoctorMedicalRecordsPage() {
             onClick={() => setShowNewRecordForm(true)}
             className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             New Record
           </button>
         )}
       </div>
 
-      {/* Records List */}
-      {records.length > 0 ? (
+      {isLoading ? (
+        <div className="flex h-32 items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : records.length > 0 ? (
         <div className="space-y-4">
           {records.map((record) => (
             <div key={record.id} className="rounded-xl border border-border bg-card p-6">
@@ -119,51 +108,25 @@ export default function DoctorMedicalRecordsPage() {
                   <h3 className="font-semibold text-foreground">{record.patientName}</h3>
                   <p className="text-sm text-muted-foreground">{record.visitDate}</p>
                 </div>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                  {record.diagnosis}
-                </span>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{record.diagnosis}</span>
               </div>
 
               {record.vitals && (
                 <div className="mb-4 grid gap-4 rounded-lg bg-secondary/50 p-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Blood Pressure</p>
-                    <p className="font-medium text-foreground">{record.vitals.bloodPressure}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Temperature</p>
-                    <p className="font-medium text-foreground">{record.vitals.temperature}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Heart Rate</p>
-                    <p className="font-medium text-foreground">{record.vitals.heartRate}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Weight</p>
-                    <p className="font-medium text-foreground">{record.vitals.weight}</p>
-                  </div>
+                  <div><p className="text-xs text-muted-foreground">Blood Pressure</p><p className="font-medium text-foreground">{record.vitals.bloodPressure}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Temperature</p><p className="font-medium text-foreground">{record.vitals.temperature}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Heart Rate</p><p className="font-medium text-foreground">{record.vitals.heartRate}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Weight</p><p className="font-medium text-foreground">{record.vitals.weight}</p></div>
                 </div>
               )}
 
               <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Treatment:</p>
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.treatment}</p>
-                </div>
+                <div><p className="text-sm font-medium text-foreground">Treatment:</p><p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.treatment}</p></div>
                 <div>
                   <p className="text-sm font-medium text-foreground">Prescription:</p>
-                  {record.prescription ? (
-                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.prescription}</p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">—</p>
-                  )}
+                  {record.prescription ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{record.prescription}</p> : <p className="text-sm text-muted-foreground">—</p>}
                 </div>
-                {record.notes && (
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Notes:</p>
-                    <p className="text-sm text-muted-foreground">{record.notes}</p>
-                  </div>
-                )}
+                {record.notes && <div><p className="text-sm font-medium text-foreground">Notes:</p><p className="text-sm text-muted-foreground">{record.notes}</p></div>}
               </div>
             </div>
           ))}
@@ -172,10 +135,7 @@ export default function DoctorMedicalRecordsPage() {
         <div className="rounded-xl border border-border bg-card py-12 text-center">
           <p className="text-muted-foreground">No medical records found.</p>
           {availableAppointments.length > 0 && (
-            <button
-              onClick={() => setShowNewRecordForm(true)}
-              className="mt-4 cursor-pointer text-primary hover:underline"
-            >
+            <button onClick={() => setShowNewRecordForm(true)} className="mt-4 cursor-pointer text-primary hover:underline">
               Create your first record
             </button>
           )}
@@ -184,32 +144,20 @@ export default function DoctorMedicalRecordsPage() {
 
       {/* New Record Modal */}
       {showNewRecordForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-card p-6">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground">Create Medical Record</h2>
-              <button
-                onClick={() => setShowNewRecordForm(false)}
-                className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <button onClick={() => setShowNewRecordForm(false)} className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground">Select Appointment</label>
-                <Select
-                  value={selectedAppointment || 'none'}
-                  onValueChange={(value) =>
-                    setSelectedAppointment(value === 'none' ? '' : value)
-                  }
-                >
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select an appointment..." />
-                  </SelectTrigger>
+                <Select value={selectedAppointmentId || 'none'} onValueChange={(v) => setSelectedAppointmentId(v === 'none' ? '' : v)}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Select an appointment..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Select an appointment...</SelectItem>
                     {availableAppointments.map((apt) => (
@@ -223,107 +171,55 @@ export default function DoctorMedicalRecordsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-foreground">Diagnosis</label>
-                <input
-                  type="text"
-                  value={newRecord.diagnosis}
-                  onChange={(e) => setNewRecord({ ...newRecord, diagnosis: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                  placeholder="Enter diagnosis"
-                />
+                <input type="text" value={newRecord.diagnosis} onChange={(e) => setNewRecord({ ...newRecord, diagnosis: e.target.value })} className={inputCls} placeholder="Enter diagnosis" />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-foreground">Treatment Details</label>
-                <textarea
-                  value={newRecord.treatment}
-                  onChange={(e) => setNewRecord({ ...newRecord, treatment: e.target.value })}
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                  placeholder="Enter treatment plan / details"
-                />
+                <textarea value={newRecord.treatment} onChange={(e) => setNewRecord({ ...newRecord, treatment: e.target.value })} rows={3} className={inputCls} placeholder="Enter treatment plan / details" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground">Vitals (Optional)</label>
                 <div className="mt-1 grid gap-4 sm:grid-cols-2">
-                  <input
-                    type="text"
-                    value={newRecord.vitals.bloodPressure}
-                    onChange={(e) => setNewRecord({ 
-                      ...newRecord, 
-                      vitals: { ...newRecord.vitals, bloodPressure: e.target.value } 
-                    })}
-                    className="rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                    placeholder="Blood Pressure (e.g., 120/80)"
-                  />
-                  <input
-                    type="text"
-                    value={newRecord.vitals.temperature}
-                    onChange={(e) => setNewRecord({ 
-                      ...newRecord, 
-                      vitals: { ...newRecord.vitals, temperature: e.target.value } 
-                    })}
-                    className="rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                    placeholder="Temperature (e.g., 98.6 F)"
-                  />
-                  <input
-                    type="text"
-                    value={newRecord.vitals.heartRate}
-                    onChange={(e) => setNewRecord({ 
-                      ...newRecord, 
-                      vitals: { ...newRecord.vitals, heartRate: e.target.value } 
-                    })}
-                    className="rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                    placeholder="Heart Rate (e.g., 72 bpm)"
-                  />
-                  <input
-                    type="text"
-                    value={newRecord.vitals.weight}
-                    onChange={(e) => setNewRecord({ 
-                      ...newRecord, 
-                      vitals: { ...newRecord.vitals, weight: e.target.value } 
-                    })}
-                    className="rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                    placeholder="Weight (e.g., 70 kg)"
-                  />
+                  {[
+                    { key: 'bloodPressure', placeholder: 'Blood Pressure (e.g., 120/80)' },
+                    { key: 'temperature', placeholder: 'Temperature (e.g., 98.6 F)' },
+                    { key: 'heartRate', placeholder: 'Heart Rate (e.g., 72 bpm)' },
+                    { key: 'weight', placeholder: 'Weight (e.g., 70 kg)' },
+                  ].map(({ key, placeholder }) => (
+                    <input
+                      key={key}
+                      type="text"
+                      value={(newRecord.vitals as Record<string,string>)[key]}
+                      onChange={(e) => setNewRecord({ ...newRecord, vitals: { ...newRecord.vitals, [key]: e.target.value } })}
+                      className="rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+                      placeholder={placeholder}
+                    />
+                  ))}
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground">Prescription</label>
-                <textarea
-                  value={newRecord.prescription}
-                  onChange={(e) => setNewRecord({ ...newRecord, prescription: e.target.value })}
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                  placeholder="Enter prescription details"
-                />
+                <textarea value={newRecord.prescription} onChange={(e) => setNewRecord({ ...newRecord, prescription: e.target.value })} rows={3} className={inputCls} placeholder="Enter prescription details" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground">Notes</label>
-                <textarea
-                  value={newRecord.notes}
-                  onChange={(e) => setNewRecord({ ...newRecord, notes: e.target.value })}
-                  rows={3}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                  placeholder="Additional notes..."
-                />
+                <textarea value={newRecord.notes} onChange={(e) => setNewRecord({ ...newRecord, notes: e.target.value })} rows={3} className={inputCls} placeholder="Additional notes..." />
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowNewRecordForm(false)}
-                  className="flex-1 cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-                >
+                <button onClick={() => setShowNewRecordForm(false)} className="flex-1 cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary">
                   Cancel
                 </button>
                 <button
                   onClick={handleCreateRecord}
-                  disabled={!selectedAppointment || !newRecord.diagnosis || !newRecord.treatment}
+                  disabled={!selectedAppointmentId || !newRecord.diagnosis || !newRecord.treatment || isSaving}
                   className="flex-1 cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Create Record
+                  {isSaving ? 'Saving…' : 'Create Record'}
                 </button>
               </div>
             </div>

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { mockDoctors } from '@/lib/mock-data';
+import { doctorsService } from '@/lib/api';
 import { WeeklySchedule, TimeSlot } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
 
 const defaultTimeSlots = [
   '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
@@ -12,10 +13,28 @@ const defaultTimeSlots = [
 
 export default function DoctorAvailabilityPage() {
   const { user } = useAuth();
-  const currentDoctor = mockDoctors.find(d => d.email === user?.email) || mockDoctors[0];
   
-  const [schedule, setSchedule] = useState<WeeklySchedule>(currentDoctor.availability);
+  const [schedule, setSchedule] = useState<WeeklySchedule>([]);
   const [saved, setSaved] = useState(false);
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    doctorsService.getAll({ limit: 50 }).then((res) => {
+      if (res.success) {
+        const doc = res.data.find(d => d.email === user.email);
+        if (doc) {
+          setDoctorId(doc.id);
+          doctorsService.getAvailability(doc.id).then((availRes) => {
+            if (availRes.success) setSchedule(availRes.data);
+            setIsLoading(false);
+          });
+        }
+      }
+    });
+  }, [user]);
 
   const toggleDayWorking = (dayIndex: number) => {
     const newSchedule = [...schedule];
@@ -46,11 +65,22 @@ export default function DoctorAvailabilityPage() {
     setSchedule(newSchedule);
   };
 
-  const handleSave = () => {
-    // In a real app, this would save to the backend
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    if (!doctorId) return;
+    const res = await doctorsService.updateAvailability(doctorId, { schedule });
+    if (res.success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div>

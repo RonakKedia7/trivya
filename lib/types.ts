@@ -28,6 +28,8 @@ export interface Patient extends User {
   bloodGroup: string;
   address: string;
   emergencyContact: string;
+  medicalHistory?: string;
+  allergies?: string;
 }
 
 export interface Admin extends User {

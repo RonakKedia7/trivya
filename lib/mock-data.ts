@@ -171,12 +171,12 @@ export const mockPatients: Patient[] = [
 ];
 
 export const mockAdmin: Admin = {
-  id: 'admin-1',
-  email: 'admin@hospital.com',
+  id: 'master-admin',
+  email: 'admin@hospital.com', // password: admin
   name: 'System Administrator',
   role: 'admin',
-  phone: '+1-456-789-0123',
-  createdAt: '2023-01-01',
+  phone: '+1-555-000-0000',
+  createdAt: '2020-01-01',
 };
 
 export const mockAppointments: Appointment[] = [
@@ -227,12 +227,11 @@ export const mockAppointments: Appointment[] = [
     doctorId: 'doc-5',
     doctorName: 'Dr. Robert Davis',
     department: 'Neurology',
-    date: '2026-03-28',
+    date: '2027-04-10', // future date
     time: '11:00',
-    status: 'completed',
+    status: 'scheduled',
     reason: 'Migraine consultation',
-    notes: 'Prescribed medication for migraines',
-    createdAt: '2026-03-22',
+    createdAt: '2027-04-01',
   },
   {
     id: 'apt-5',

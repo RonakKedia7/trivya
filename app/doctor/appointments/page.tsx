@@ -4,87 +4,74 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { mockDoctors } from '@/lib/mock-data';
 import { Appointment, AppointmentStatus, MedicalRecord } from '@/lib/types';
+import { appointmentsService, medicalRecordsService } from '@/lib/api';
+import type { CreateMedicalRecordRequest } from '@/lib/api';
 import { DatePicker } from '@/components/ui/date-picker';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { getAppointments, setAppointments, getMedicalRecords, upsertMedicalRecord, upsertAppointment } from '@/lib/storage';
+import { Loader2 } from 'lucide-react';
 
 export default function DoctorAppointmentsPage() {
   const { user } = useAuth();
-  const currentDoctor = mockDoctors.find(d => d.email === user?.email) || mockDoctors[0];
-  
-  const [appointments, setAppointmentsState] = useState<Appointment[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [dateFilter, setDateFilter] = useState<string>('');
+  const currentDoctor = mockDoctors.find(d => d.email === user?.email) ?? mockDoctors[0];
+
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [recordDraft, setRecordDraft] = useState<{
-    diagnosis: string;
-    treatment: string;
-    prescription: string;
-    notes: string;
-  }>({ diagnosis: '', treatment: '', prescription: '', notes: '' });
-  const [formError, setFormError] = useState<string>('');
+  const [recordDraft, setRecordDraft] = useState({ 
+    diagnosis: '', treatment: '', prescription: '', notes: '',
+    vitals: { bloodPressure: '', temperature: '', heartRate: '', weight: '' }
+  });
+  const [existingRecord, setExistingRecord] = useState<MedicalRecord | null>(null);
+  const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const all = getAppointments();
-    const mine = all.filter((a) => a.doctorId === currentDoctor.id);
-    setAppointmentsState(mine);
-  }, [currentDoctor.id]);
-
-  const filteredAppointments = appointments.filter(apt => {
-    const matchesStatus = !statusFilter || apt.status === statusFilter;
-    const matchesDate = !dateFilter || apt.date === dateFilter;
-    return matchesStatus && matchesDate;
-  });
-
-  const selectedRecord = useMemo(() => {
-    if (!selectedAppointment) return null;
-    const records = getMedicalRecords();
-    return records.find((r) => r.appointmentId === selectedAppointment.id) ?? null;
-  }, [selectedAppointment]);
+    if (!user) return;
+    setIsLoading(true);
+    appointmentsService.getMine(user, {
+      status: statusFilter || undefined,
+      date: dateFilter || undefined,
+    }).then((res) => {
+      if (res.success) setAppointments(res.data);
+      setIsLoading(false);
+    });
+  }, [user, statusFilter, dateFilter]);
 
   useEffect(() => {
-    if (!selectedAppointment) return;
-    const existing = selectedRecord;
-    setRecordDraft({
-      diagnosis: existing?.diagnosis ?? selectedAppointment.reason,
-      treatment: existing?.treatment ?? '',
-      prescription: existing?.prescription ?? '',
-      notes: existing?.notes ?? '',
+    if (!selectedAppointment) { setExistingRecord(null); return; }
+    medicalRecordsService.getByAppointment(selectedAppointment.id).then((res) => {
+      const rec = res.success ? res.data : null;
+      setExistingRecord(rec);
+      setRecordDraft({
+        diagnosis: rec?.diagnosis ?? selectedAppointment.reason,
+        treatment: rec?.treatment ?? '',
+        prescription: rec?.prescription ?? '',
+        notes: rec?.notes ?? '',
+        vitals: rec?.vitals ?? { bloodPressure: '', temperature: '', heartRate: '', weight: '' }
+      });
+      setFormError('');
     });
-    setFormError('');
-  }, [selectedAppointment, selectedRecord]);
+  }, [selectedAppointment]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled':
-        return 'bg-chart-1/10 text-chart-1';
-      case 'completed':
-        return 'bg-success/10 text-success';
-      case 'cancelled':
-        return 'bg-destructive/10 text-destructive';
-      case 'in-progress':
-        return 'bg-warning/10 text-warning';
-      default:
-        return 'bg-muted text-muted-foreground';
+      case 'scheduled':   return 'bg-chart-1/10 text-chart-1';
+      case 'completed':   return 'bg-success/10 text-success';
+      case 'cancelled':   return 'bg-destructive/10 text-destructive';
+      case 'in-progress': return 'bg-warning/10 text-warning';
+      default:            return 'bg-muted text-muted-foreground';
     }
   };
 
-  const updateAppointmentStatus = (id: string, status: AppointmentStatus) => {
-    const nextAll = getAppointments().map((apt) =>
-      apt.id === id ? { ...apt, status } : apt,
-    );
-    setAppointments(nextAll);
-    const mine = nextAll.filter((a) => a.doctorId === currentDoctor.id);
-    setAppointmentsState(mine);
-    if (selectedAppointment?.id === id) {
-      setSelectedAppointment({ ...selectedAppointment, status });
+  const updateStatus = async (id: string, status: AppointmentStatus) => {
+    const res = await appointmentsService.updateStatus(id, { status });
+    if (res.success) {
+      setAppointments(prev => prev.map(a => a.id === id ? res.data : a));
+      if (selectedAppointment?.id === id) setSelectedAppointment(res.data);
     }
   };
 
@@ -93,60 +80,43 @@ export default function DoctorAppointmentsPage() {
     setIsSaving(true);
     setFormError('');
 
-    const diagnosis = recordDraft.diagnosis.trim() || selectedAppointment.reason;
-    const treatment = recordDraft.treatment.trim();
-    const prescription = recordDraft.prescription.trim();
-    const notes = recordDraft.notes.trim();
-
     if (finalize) {
-      if (!treatment) {
-        setFormError('Treatment details are required to complete the appointment.');
-        setIsSaving(false);
-        return;
-      }
-      if (!prescription) {
-        setFormError('Prescription information is required to complete the appointment.');
-        setIsSaving(false);
-        return;
-      }
+      if (!recordDraft.treatment.trim()) { setFormError('Treatment details are required.'); setIsSaving(false); return; }
+      if (!recordDraft.prescription.trim()) { setFormError('Prescription information is required.'); setIsSaving(false); return; }
     }
 
-    const record: MedicalRecord = {
-      id: selectedRecord?.id ?? `rec-${Date.now()}`,
+    const req: CreateMedicalRecordRequest = {
       appointmentId: selectedAppointment.id,
-      patientId: selectedAppointment.patientId,
-      patientName: selectedAppointment.patientName,
-      doctorId: selectedAppointment.doctorId,
-      doctorName: selectedAppointment.doctorName,
-      visitDate: selectedAppointment.date,
-      diagnosis,
-      treatment: treatment || selectedRecord?.treatment || '',
-      prescription: prescription || undefined,
-      notes: notes || undefined,
-      finalized: finalize ? true : selectedRecord?.finalized,
-      updatedAt: new Date().toISOString(),
-      vitals: selectedRecord?.vitals,
+      diagnosis: recordDraft.diagnosis.trim() || selectedAppointment.reason,
+      treatment: recordDraft.treatment.trim(),
+      prescription: recordDraft.prescription.trim() || undefined,
+      notes: recordDraft.notes.trim() || undefined,
+      finalized: finalize,
+      vitals: Object.values(recordDraft.vitals).some(v => v.trim() !== '') ? recordDraft.vitals : undefined,
     };
 
-    upsertMedicalRecord(record);
+    const res = await medicalRecordsService.create(req, {
+      id: currentDoctor.id,
+      name: currentDoctor.name,
+      patientId: selectedAppointment.patientId,
+      patientName: selectedAppointment.patientName,
+      date: selectedAppointment.date,
+    });
 
-    if (finalize) {
-      const updatedAppointment: Appointment = {
-        ...selectedAppointment,
-        status: 'completed',
-        notes: notes || selectedAppointment.notes,
-      };
-      upsertAppointment(updatedAppointment);
-      updateAppointmentStatus(selectedAppointment.id, 'completed');
+    if (res.success && finalize) {
+      await updateStatus(selectedAppointment.id, 'completed');
     }
 
     setIsSaving(false);
   };
 
-  const handleStartFromRow = (apt: Appointment) => {
+  const handleStartFromRow = async (apt: Appointment) => {
     if (apt.status !== 'scheduled') return;
-    updateAppointmentStatus(apt.id, 'in-progress');
-    setSelectedAppointment({ ...apt, status: 'in-progress' });
+    const res = await appointmentsService.updateStatus(apt.id, { status: 'in-progress' });
+    if (res.success) {
+      setAppointments(prev => prev.map(a => a.id === apt.id ? res.data : a));
+      setSelectedAppointment(res.data);
+    }
   };
 
   return (
@@ -158,13 +128,8 @@ export default function DoctorAppointmentsPage() {
 
       {/* Filters */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row">
-        <Select
-          value={statusFilter || 'all'}
-          onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value)}
-        >
-          <SelectTrigger className="sm:w-[220px]">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
+        <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
+          <SelectTrigger className="sm:w-[220px]"><SelectValue placeholder="All Statuses" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="scheduled">Scheduled</SelectItem>
@@ -173,110 +138,78 @@ export default function DoctorAppointmentsPage() {
             <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
-        <DatePicker
-          value={dateFilter}
-          onChange={setDateFilter}
-          placeholder="Filter by date"
-          className="sm:w-[220px]"
-        />
+        <DatePicker value={dateFilter} onChange={setDateFilter} placeholder="Filter by date" className="sm:w-[220px]" />
         {(statusFilter || dateFilter) && (
-          <button
-            onClick={() => { setStatusFilter(''); setDateFilter(''); }}
-            className="h-10 cursor-pointer rounded-lg border border-border px-4 text-sm text-muted-foreground transition-colors hover:bg-secondary sm:w-[220px]"
-          >
+          <button onClick={() => { setStatusFilter(''); setDateFilter(''); }} className="h-10 cursor-pointer rounded-lg border border-border px-4 text-sm text-muted-foreground transition-colors hover:bg-secondary sm:w-[220px]">
             Clear Filters
           </button>
         )}
       </div>
 
-      {/* Appointments List */}
+      {/* Table */}
       <div className="rounded-xl border border-border bg-card">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-secondary/50">
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Patient</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date & Time</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Reason</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredAppointments.map((apt) => (
-                <tr key={apt.id} className="hover:bg-secondary/30">
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-chart-2/10 text-sm font-medium text-chart-2">
-                        {apt.patientName.charAt(0)}
-                      </div>
-                      <span className="font-medium text-foreground">{apt.patientName}</span>
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">
-                    {apt.date} at {apt.time}
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    <span className="line-clamp-1">{apt.reason}</span>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(apt.status)}`}>
-                      {apt.status}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setSelectedAppointment(apt)}
-                        className="cursor-pointer text-sm text-primary hover:underline"
-                      >
-                        View
-                      </button>
-                      {apt.status === 'scheduled' && (
-                        <>
-                          <button
-                            onClick={() => handleStartFromRow(apt)}
-                            className="cursor-pointer text-sm text-warning hover:underline"
-                          >
-                            Start
-                          </button>
-                        </>
-                      )}
-                      {apt.status === 'in-progress' && (
-                        <button
-                          onClick={() => setSelectedAppointment(apt)}
-                          className="cursor-pointer text-sm text-success hover:underline"
-                        >
-                          Complete
-                        </button>
-                      )}
-                    </div>
-                  </td>
+        {isLoading ? (
+          <div className="flex h-32 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border bg-secondary/50">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Patient</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Date &amp; Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Reason</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {filteredAppointments.length === 0 && (
-          <div className="py-12 text-center">
-            <p className="text-muted-foreground">No appointments found.</p>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {appointments.map((apt) => (
+                  <tr key={apt.id} className="hover:bg-secondary/30">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-chart-2/10 text-sm font-medium text-chart-2">
+                          {apt.patientName.charAt(0)}
+                        </div>
+                        <span className="font-medium text-foreground">{apt.patientName}</span>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{apt.date} at {apt.time}</td>
+                    <td className="px-6 py-4 text-muted-foreground"><span className="line-clamp-1">{apt.reason}</span></td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(apt.status)}`}>{apt.status}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setSelectedAppointment(apt)} className="cursor-pointer text-sm text-primary hover:underline">View</button>
+                        {apt.status === 'scheduled' && (
+                          <button onClick={() => handleStartFromRow(apt)} className="cursor-pointer text-sm text-warning hover:underline">Start</button>
+                        )}
+                        {apt.status === 'in-progress' && (
+                          <button onClick={() => setSelectedAppointment(apt)} className="cursor-pointer text-sm text-success hover:underline">Complete</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {appointments.length === 0 && (
+              <div className="py-12 text-center"><p className="text-muted-foreground">No appointments found.</p></div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Appointment Details Modal */}
+      {/* Detail Modal */}
       {selectedAppointment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-card p-6">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-foreground">Appointment Details</h2>
-              <button
-                onClick={() => setSelectedAppointment(null)}
-                className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <button onClick={() => setSelectedAppointment(null)} className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
@@ -287,140 +220,90 @@ export default function DoctorAppointmentsPage() {
                 </div>
                 <div>
                   <p className="text-lg font-semibold text-foreground">{selectedAppointment.patientName}</p>
-                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(selectedAppointment.status)}`}>
-                    {selectedAppointment.status}
-                  </span>
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(selectedAppointment.status)}`}>{selectedAppointment.status}</span>
                 </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">Date</p>
-                  <p className="font-medium text-foreground">{selectedAppointment.date}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Time</p>
-                  <p className="font-medium text-foreground">{selectedAppointment.time}</p>
-                </div>
+                <div><p className="text-sm text-muted-foreground">Date</p><p className="font-medium text-foreground">{selectedAppointment.date}</p></div>
+                <div><p className="text-sm text-muted-foreground">Time</p><p className="font-medium text-foreground">{selectedAppointment.time}</p></div>
               </div>
+              <div><p className="text-sm text-muted-foreground">Reason</p><p className="font-medium text-foreground">{selectedAppointment.reason}</p></div>
 
-              <div>
-                <p className="text-sm text-muted-foreground">Reason</p>
-                <p className="font-medium text-foreground">{selectedAppointment.reason}</p>
-              </div>
-
+              {/* Visit Notes */}
               <div className="rounded-xl border border-border bg-background p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-sm font-medium text-foreground">Visit Notes</p>
-                  {selectedRecord?.finalized ? (
-                    <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
-                      Finalized
-                    </span>
+                  {existingRecord?.finalized ? (
+                    <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">Finalized</span>
                   ) : (
-                    <span className="rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning">
-                      Draft
-                    </span>
+                    <span className="rounded-full bg-warning/10 px-3 py-1 text-xs font-medium text-warning">Draft</span>
                   )}
                 </div>
 
                 {formError && (
-                  <div className="mb-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                    {formError}
-                  </div>
+                  <div className="mb-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{formError}</div>
                 )}
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
+                <div className="grid gap-4">
+                  <div>
                     <label className="text-sm font-medium text-foreground">Diagnosis / Summary</label>
-                    <input
-                      value={recordDraft.diagnosis}
-                      onChange={(e) =>
-                        setRecordDraft((p) => ({ ...p, diagnosis: e.target.value }))
-                      }
-                      className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-4 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                      placeholder="Short summary (e.g., Mild hypertension)"
-                    />
+                    <input value={recordDraft.diagnosis} onChange={(e) => setRecordDraft(p => ({ ...p, diagnosis: e.target.value }))} className="mt-1 h-10 w-full rounded-lg border border-input bg-background px-4 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20" placeholder="Short summary" />
+                  </div>
+                  
+                  <div className="rounded-lg bg-secondary/30 p-4 border border-border mt-2">
+                    <p className="text-sm font-medium text-foreground mb-3">Patient Vitals</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Blood Pressure</label>
+                        <input value={recordDraft.vitals.bloodPressure} onChange={(e) => setRecordDraft(p => ({ ...p, vitals: { ...p.vitals, bloodPressure: e.target.value } }))} className="mt-1 h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20" placeholder="120/80" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Heart Rate</label>
+                        <input value={recordDraft.vitals.heartRate} onChange={(e) => setRecordDraft(p => ({ ...p, vitals: { ...p.vitals, heartRate: e.target.value } }))} className="mt-1 h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20" placeholder="72 bpm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Temperature</label>
+                        <input value={recordDraft.vitals.temperature} onChange={(e) => setRecordDraft(p => ({ ...p, vitals: { ...p.vitals, temperature: e.target.value } }))} className="mt-1 h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20" placeholder="98.6 F" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Weight</label>
+                        <input value={recordDraft.vitals.weight} onChange={(e) => setRecordDraft(p => ({ ...p, vitals: { ...p.vitals, weight: e.target.value } }))} className="mt-1 h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20" placeholder="75 kg" />
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Treatment Details<span className="text-destructive"> *</span>
-                    </label>
-                    <textarea
-                      value={recordDraft.treatment}
-                      onChange={(e) =>
-                        setRecordDraft((p) => ({ ...p, treatment: e.target.value }))
-                      }
-                      rows={4}
-                      className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                      placeholder="Treatment plan, procedures performed, recommendations..."
-                    />
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Treatment Details <span className="text-destructive">*</span></label>
+                    <textarea value={recordDraft.treatment} onChange={(e) => setRecordDraft(p => ({ ...p, treatment: e.target.value }))} rows={4} className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20" placeholder="Treatment plan..." />
                   </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Prescription<span className="text-destructive"> *</span>
-                    </label>
-                    <textarea
-                      value={recordDraft.prescription}
-                      onChange={(e) =>
-                        setRecordDraft((p) => ({ ...p, prescription: e.target.value }))
-                      }
-                      rows={3}
-                      className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                      placeholder="Medication, dosage, frequency..."
-                    />
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Prescription <span className="text-destructive">*</span></label>
+                    <textarea value={recordDraft.prescription} onChange={(e) => setRecordDraft(p => ({ ...p, prescription: e.target.value }))} rows={3} className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20" placeholder="Medication, dosage, frequency..." />
                   </div>
-
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className="text-sm font-medium text-foreground">Additional Notes</label>
-                    <textarea
-                      value={recordDraft.notes}
-                      onChange={(e) =>
-                        setRecordDraft((p) => ({ ...p, notes: e.target.value }))
-                      }
-                      rows={3}
-                      className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
-                      placeholder="Follow-up instructions, warnings, patient concerns..."
-                    />
+                    <textarea value={recordDraft.notes} onChange={(e) => setRecordDraft(p => ({ ...p, notes: e.target.value }))} rows={3} className="mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20" placeholder="Follow-up instructions..." />
                   </div>
                 </div>
               </div>
 
-              {/* Status Update Buttons */}
+              {/* Action Buttons */}
               {selectedAppointment.status !== 'completed' && selectedAppointment.status !== 'cancelled' && (
                 <div className="flex gap-3 border-t border-border pt-4">
                   {selectedAppointment.status === 'scheduled' && (
                     <>
-                      <button
-                        onClick={() => updateAppointmentStatus(selectedAppointment.id, 'in-progress')}
-                        className="flex-1 cursor-pointer rounded-lg bg-warning px-4 py-2 text-sm font-medium text-warning-foreground transition-colors hover:bg-warning/90"
-                      >
-                        Start Appointment
-                      </button>
-                      <button
-                        onClick={() => updateAppointmentStatus(selectedAppointment.id, 'cancelled')}
-                        className="cursor-pointer rounded-lg border border-destructive px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-                      >
-                        Cancel
-                      </button>
+                      <button onClick={() => updateStatus(selectedAppointment.id, 'in-progress')} className="flex-1 cursor-pointer rounded-lg bg-warning px-4 py-2 text-sm font-medium text-warning-foreground transition-colors hover:bg-warning/90">Start Appointment</button>
+                      <button onClick={() => updateStatus(selectedAppointment.id, 'cancelled')} className="cursor-pointer rounded-lg border border-destructive px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10">Cancel</button>
                     </>
                   )}
                   {selectedAppointment.status === 'in-progress' && (
                     <>
-                      <button
-                        onClick={() => void saveDraft(false)}
-                        disabled={isSaving}
-                        className="flex-1 cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {isSaving ? 'Saving...' : 'Save Draft'}
+                      <button onClick={() => saveDraft(false)} disabled={isSaving} className="flex-1 cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50">
+                        {isSaving ? 'Saving…' : 'Save Draft'}
                       </button>
-                      <button
-                        onClick={() => void saveDraft(true)}
-                        disabled={isSaving}
-                        className="flex-1 cursor-pointer rounded-lg bg-success px-4 py-2 text-sm font-medium text-success-foreground transition-colors hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Finalize & Complete
+                      <button onClick={() => saveDraft(true)} disabled={isSaving} className="flex-1 cursor-pointer rounded-lg bg-success px-4 py-2 text-sm font-medium text-success-foreground transition-colors hover:bg-success/90 disabled:opacity-50">
+                        Finalize &amp; Complete
                       </button>
                     </>
                   )}
@@ -428,10 +311,7 @@ export default function DoctorAppointmentsPage() {
               )}
             </div>
 
-            <button
-              onClick={() => setSelectedAppointment(null)}
-              className="mt-4 w-full cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-            >
+            <button onClick={() => setSelectedAppointment(null)} className="mt-4 w-full cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary">
               Close
             </button>
           </div>

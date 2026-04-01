@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { mockPatients } from "@/lib/mock-data"
+import { patientsService } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,6 +40,7 @@ export default function PatientProfilePage() {
 
   const [formData, setFormData] = useState<Partial<Patient>>(patientData)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState("")
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -53,9 +55,19 @@ export default function PatientProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user?.id) return
     setIsSaving(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    setSaveMessage("")
+    const res = await patientsService.updateProfile(user.id, {
+      name: formData.name,
+      phone: formData.phone,
+      dateOfBirth: formData.dateOfBirth,
+      gender: formData.gender,
+      bloodGroup: formData.bloodGroup,
+      address: formData.address,
+      emergencyContact: formData.emergencyContact,
+    })
+    setSaveMessage(res.success ? "Profile saved successfully!" : res.error ?? "Save failed")
     setIsSaving(false)
   }
 
@@ -229,7 +241,12 @@ export default function PatientProfilePage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-4">
+          {saveMessage && (
+            <p className={`text-sm ${saveMessage.includes("success") ? "text-success" : "text-destructive"}`}>
+              {saveMessage}
+            </p>
+          )}
           <Button type="submit" disabled={isSaving}>
             <Save className="mr-2 h-4 w-4" />
             {isSaving ? "Saving..." : "Save Changes"}

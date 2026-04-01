@@ -5,13 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { UserRole } from "@/lib/types";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -103,7 +97,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-foreground">
-              Create Account
+              Patient Registration
             </h1>
             <p className="mt-2 text-muted-foreground">
               Join our hospital management system
@@ -174,32 +168,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="role"
-                  className="block text-sm font-medium text-foreground"
-                >
-                  Account Type
-                </label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      role: value as UserRole,
-                    }))
-                  }
-                >
-                  <SelectTrigger id="role" className="mt-1 h-12">
-                    <SelectValue placeholder="Select account type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="patient">Patient</SelectItem>
-                    <SelectItem value="doctor">Doctor</SelectItem>
-                    <SelectItem value="admin">Administrator</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
 
               <div>
                 <label
@@ -263,7 +232,7 @@ export default function RegisterPage() {
                   />
                 </svg>
               ) : (
-                "Create Account"
+                "Register as Patient"
               )}
             </button>
           </form>
