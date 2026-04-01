@@ -22,7 +22,7 @@ export default function LoginPage() {
     if (success && user) {
       if (user.mustChangePassword) {
         if (user.role === "doctor") router.push("/doctor/profile");
-        else if (user.role === "admin") router.push("/admin/profile");
+        else if (user.role === "admin") router.push("/admin");
         else router.push("/patient/profile");
         return;
       }
