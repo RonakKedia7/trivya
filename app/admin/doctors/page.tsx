@@ -23,9 +23,10 @@ export default function AdminDoctorsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [temporaryPassword, setTemporaryPassword] = useState('');
 
   const [newDoctor, setNewDoctor] = useState<CreateDoctorRequest>({
-    name: '', email: '', phone: '', password: 'doctor123',
+    name: '', email: '', phone: '',
     specialization: '', department: '', qualification: '',
     experience: 0, consultationFee: 0, bio: '',
   });
@@ -48,10 +49,11 @@ export default function AdminDoctorsPage() {
     setError('');
     const res = await doctorsService.create(newDoctor);
     if (res.success) {
-      setDoctors((prev) => [...prev, res.data]);
+      setDoctors((prev) => [...prev, res.data.doctor]);
+      setTemporaryPassword(res.data.temporaryPassword || '');
       setShowAddModal(false);
       setNewDoctor({
-        name: '', email: '', phone: '', password: 'doctor123',
+        name: '', email: '', phone: '',
         specialization: '', department: '', qualification: '',
         experience: 0, consultationFee: 0, bio: '',
       });
@@ -93,6 +95,17 @@ export default function AdminDoctorsPage() {
   };
 
   const inputCls = 'mt-1 w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20';
+  const doctorBasicFields: Array<{
+    label: string;
+    field: 'name' | 'email' | 'phone' | 'qualification';
+    type: string;
+    placeholder?: string;
+  }> = [
+    { label: 'Full Name', field: 'name', type: 'text' },
+    { label: 'Email', field: 'email', type: 'email' },
+    { label: 'Phone', field: 'phone', type: 'tel' },
+    { label: 'Qualification', field: 'qualification', type: 'text', placeholder: 'e.g., MD, FACC' },
+  ];
 
   return (
     <div>
@@ -234,17 +247,12 @@ export default function AdminDoctorsPage() {
             </div>
             {error && <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
             <div className="space-y-4">
-              {[
-                { label: 'Full Name', field: 'name', type: 'text' },
-                { label: 'Email', field: 'email', type: 'email' },
-                { label: 'Phone', field: 'phone', type: 'tel' },
-                { label: 'Qualification', field: 'qualification', type: 'text', placeholder: 'e.g., MD, FACC' },
-              ].map(({ label, field, type, placeholder }) => (
+              {doctorBasicFields.map(({ label, field, type, placeholder }) => (
                 <div key={field}>
                   <label className="block text-sm font-medium text-foreground">{label}</label>
                   <input
                     type={type}
-                    value={(newDoctor as any)[field] || ''}
+                    value={newDoctor[field] || ''}
                     onChange={(e) => setNewDoctor({ ...newDoctor, [field]: e.target.value })}
                     className={inputCls}
                     placeholder={placeholder}
@@ -288,6 +296,34 @@ export default function AdminDoctorsPage() {
                   {isSaving ? 'Saving…' : 'Add Doctor'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {temporaryPassword && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-6">
+            <h3 className="text-lg font-semibold text-foreground">Temporary Password</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Share this password with the doctor securely. It is shown only once.
+            </p>
+            <div className="mt-4 rounded-lg border border-border bg-secondary/40 px-4 py-3 font-mono text-sm text-foreground">
+              {temporaryPassword}
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={() => navigator.clipboard?.writeText(temporaryPassword)}
+                className="flex-1 cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+              >
+                Copy
+              </button>
+              <button
+                onClick={() => setTemporaryPassword('')}
+                className="flex-1 cursor-pointer rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                I Have Shared It
+              </button>
             </div>
           </div>
         </div>

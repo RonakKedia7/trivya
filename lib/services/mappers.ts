@@ -26,6 +26,7 @@ export function mapUserToPublic(u: IUser | any) {
     email: u.email,
     role: (u.role ?? '').toString().toLowerCase(),
     phone: u.phone,
+    mustChangePassword: Boolean(u.mustChangePassword),
     createdAt: safeIso(u.createdAt),
   };
 }

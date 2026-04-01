@@ -20,6 +20,12 @@ export default function LoginPage() {
     const { success, user, error: loginError } = await login(email, password);
 
     if (success && user) {
+      if (user.mustChangePassword) {
+        if (user.role === "doctor") router.push("/doctor/profile");
+        else if (user.role === "admin") router.push("/admin/profile");
+        else router.push("/patient/profile");
+        return;
+      }
       switch (user.role) {
         case "admin":
           router.push("/admin");

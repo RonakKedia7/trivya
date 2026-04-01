@@ -6,6 +6,7 @@ import { connectDB } from '@/lib/dbConfig';
 import DoctorModel from '@/lib/models/Doctor';
 import UserModel from '@/lib/models/User';
 import { safeIso } from './mappers';
+import { generateTemporaryPassword } from '@/lib/utils/password';
 
 type DoctorFilters = {
   search?: string;
@@ -19,7 +20,6 @@ type CreateDoctorRequest = {
   name: string;
   email: string;
   phone?: string;
-  password: string;
   specialization: string;
   department: string;
   qualification?: string;
@@ -34,6 +34,12 @@ type AvailabilitySlot = { startTime: string; endTime: string; isAvailable: boole
 type DayAvailability = { day: string; isWorking: boolean; slots: AvailabilitySlot[] };
 
 const WEEK_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function toMinutes(time: string): number | null {
+  const match = String(time || '').trim().match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
 
 function createDefaultWeeklyAvailability(): DayAvailability[] {
   return WEEK_DAYS.map((day) => ({
@@ -64,6 +70,7 @@ function normalizeSchedule(raw: any): DayAvailability[] {
             isAvailable: Boolean(s.isAvailable),
           }))
       : [];
+    slots.sort((a, b) => (toMinutes(a.startTime) ?? 0) - (toMinutes(b.startTime) ?? 0));
 
     byDay.set(day, {
       day,
@@ -141,13 +148,15 @@ export const doctorsService = {
     const existingUser = await UserModel.findOne({ email: req.email });
     if (existingUser) return { ok: false as const, code: 'EMAIL_EXISTS' as const };
 
-    const hashedPassword = await bcrypt.hash(req.password, 10);
+    const temporaryPassword = generateTemporaryPassword();
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
     const newUser = await UserModel.create({
       name: req.name,
       email: req.email,
       phone: req.phone,
       password: hashedPassword,
       role: 'Doctor',
+      mustChangePassword: true,
     });
 
     const newDoctor = await DoctorModel.create({
@@ -160,7 +169,7 @@ export const doctorsService = {
     });
 
     const populated = await newDoctor.populate('user');
-    return { ok: true as const, data: mapDoctorToFrontend(populated) };
+    return { ok: true as const, data: { doctor: mapDoctorToFrontend(populated), temporaryPassword } };
   },
 
   async update(id: string, req: UpdateDoctorRequest) {
@@ -205,6 +214,18 @@ export const doctorsService = {
   async updateAvailability(id: string, schedule: any) {
     await connectDB();
     const normalizedSchedule = normalizeSchedule(schedule);
+    for (const day of normalizedSchedule) {
+      const ranges = day.slots
+        .map((slot) => ({ start: toMinutes(slot.startTime), end: toMinutes(slot.endTime) }))
+        .filter((r) => r.start !== null && r.end !== null) as Array<{ start: number; end: number }>;
+      for (let i = 0; i < ranges.length; i += 1) {
+        if (ranges[i].start >= ranges[i].end) return null;
+        for (let j = i + 1; j < ranges.length; j += 1) {
+          const overlap = ranges[i].start < ranges[j].end && ranges[j].start < ranges[i].end;
+          if (overlap) return null;
+        }
+      }
+    }
     const updated = await DoctorModel.findByIdAndUpdate(id, { availability: normalizedSchedule }, { new: true }).select('availability');
     if (!updated) return null;
     return normalizeSchedule(updated.availability);

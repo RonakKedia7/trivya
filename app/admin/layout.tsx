@@ -23,6 +23,7 @@ const navItems = [
   { href: "/admin/doctors", label: "Doctors", icon: Stethoscope },
   { href: "/admin/patients", label: "Patients", icon: Users },
   { href: "/admin/appointments", label: "Appointments", icon: Calendar },
+  { href: "/admin/profile", label: "Profile", icon: User },
 ];
 
 export default function AdminLayout({

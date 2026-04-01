@@ -8,9 +8,11 @@ import PatientModel from '@/lib/models/Patient';
 import { signToken, verifyToken } from '@/lib/utils/jwt';
 import { mapUserToPublic } from './mappers';
 import { buildEnvAdminUser, ENV_ADMIN_ID, isEnvAdminEmail, verifyEnvAdminPassword } from '@/lib/config/admin';
+import { getPasswordValidationMessage, isStrongPassword } from '@/lib/utils/password';
 
 type LoginRequest = { email: string; password: string };
 type RegisterRequest = { name: string; email: string; password: string; role: 'doctor' | 'patient'; phone?: string };
+type ChangePasswordRequest = { userId: string; currentPassword: string; newPassword: string };
 
 export const authService = {
   async login(req: LoginRequest) {
@@ -51,6 +53,9 @@ export const authService = {
     const existing = await UserModel.findOne({ email: req.email });
     if (existing) return { ok: false as const, code: 'EMAIL_EXISTS' as const };
 
+    if (!isStrongPassword(req.password)) {
+      return { ok: false as const, code: 'WEAK_PASSWORD' as const, message: getPasswordValidationMessage() };
+    }
     const hashedPassword = await bcrypt.hash(req.password, 10);
     const mappedRole = req.role === 'doctor' ? 'Doctor' : 'Patient';
 
@@ -60,6 +65,7 @@ export const authService = {
       password: hashedPassword,
       role: mappedRole,
       phone: req.phone,
+      mustChangePassword: false,
     });
 
     if (mappedRole === 'Doctor') {
@@ -115,6 +121,39 @@ export const authService = {
     const token = signToken(tokenPayload);
     const newRefreshToken = signToken({ ...tokenPayload, type: 'refresh' });
     return { ok: true as const, data: { user: mapUserToPublic(user), token, refreshToken: newRefreshToken } };
+  },
+
+  async changePassword(req: ChangePasswordRequest) {
+    if (!req.currentPassword || !req.newPassword) {
+      return { ok: false as const, code: 'INVALID_REQUEST' as const };
+    }
+    if (!isStrongPassword(req.newPassword)) {
+      return { ok: false as const, code: 'WEAK_PASSWORD' as const, message: getPasswordValidationMessage() };
+    }
+    if (req.currentPassword === req.newPassword) {
+      return { ok: false as const, code: 'PASSWORD_REUSE' as const };
+    }
+
+    if (req.userId === ENV_ADMIN_ID) {
+      const currentValid = verifyEnvAdminPassword(req.currentPassword);
+      if (!currentValid) return { ok: false as const, code: 'INVALID_CREDENTIALS' as const };
+      return { ok: false as const, code: 'ADMIN_PASSWORD_ENV_MANAGED' as const };
+    }
+
+    await connectDB();
+    const user = await UserModel.findById(req.userId);
+    if (!user) return { ok: false as const, code: 'NOT_FOUND' as const };
+    if (user.role === 'Admin') return { ok: false as const, code: 'NOT_FOUND' as const };
+
+    const currentValid = await bcrypt.compare(req.currentPassword, user.password || '');
+    if (!currentValid) return { ok: false as const, code: 'INVALID_CREDENTIALS' as const };
+
+    const newHash = await bcrypt.hash(req.newPassword, 10);
+    user.password = newHash;
+    user.mustChangePassword = false;
+    await user.save();
+
+    return { ok: true as const };
   },
 };
 

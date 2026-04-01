@@ -37,12 +37,17 @@ export default function DoctorLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const mustChangePassword = Boolean(user?.mustChangePassword);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || user?.role !== "doctor")) {
       router.push("/login");
+      return;
     }
-  }, [user, isLoading, isAuthenticated, router]);
+    if (!isLoading && user?.role === "doctor" && mustChangePassword && pathname !== "/doctor/profile") {
+      router.push("/doctor/profile");
+    }
+  }, [user, isLoading, isAuthenticated, mustChangePassword, pathname, router]);
 
   if (isLoading) {
     return (
@@ -97,16 +102,17 @@ export default function DoctorLayout({
             const isActive =
               pathname === item.href ||
               (item.href !== "/doctor" && pathname.startsWith(item.href));
+            const isBlocked = mustChangePassword && item.href !== "/doctor/profile";
 
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={isBlocked ? "#" : item.href}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }`}
+                } ${isBlocked ? "pointer-events-none opacity-50" : ""}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <item.icon className="h-5 w-5" />
@@ -159,6 +165,11 @@ export default function DoctorLayout({
         </header>
 
         <main className="flex-1 overflow-auto p-4 lg:p-6">
+          {mustChangePassword && (
+            <div className="mb-4 rounded-lg border border-amber-300 bg-amber-100/50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-600/40 dark:bg-amber-900/20 dark:text-amber-200">
+              You must update your password before continuing.
+            </div>
+          )}
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>

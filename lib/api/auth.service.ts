@@ -1,4 +1,4 @@
-import type { ApiResponse, AuthResponse, LoginRequest, RegisterRequest } from './types';
+import type { ApiResponse, AuthResponse, ChangePasswordRequest, LoginRequest, RegisterRequest } from './types';
 import { apiFetch, clearAccessToken, setAccessToken } from './client';
 
 export const authService = {
@@ -25,7 +25,7 @@ export const authService = {
     return apiFetch<ApiResponse<null>>('/auth/logout', { method: 'POST' });
   },
 
-  async getMe(userId?: string): Promise<ApiResponse<any>> {
+  async getMe(_userId?: string): Promise<ApiResponse<any>> {
     // `userId` is kept for backward compatibility; server derives identity from JWT.
     return apiFetch<ApiResponse<any>>('/auth/me', { method: 'GET' });
   },
@@ -37,5 +37,12 @@ export const authService = {
     });
     if (res.success && res.data?.token) setAccessToken(res.data.token);
     return res;
+  },
+
+  async changePassword(req: ChangePasswordRequest): Promise<ApiResponse<null>> {
+    return apiFetch<ApiResponse<null>>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    });
   },
 };

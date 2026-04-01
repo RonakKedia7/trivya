@@ -29,6 +29,7 @@ type CreateAppointmentRequest = {
 
 type UpdateAppointmentStatusRequest = { status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled'; notes?: string };
 type DoctorScheduleDay = { day: string; isWorking: boolean; slots: Array<{ startTime: string; endTime: string; isAvailable: boolean }> };
+type TimeRange = { start: number; end: number };
 
 function mapAppointmentToFrontend(doc: any) {
   return {
@@ -105,6 +106,51 @@ function isDoctorAvailableAt(schedule: DoctorScheduleDay[] | undefined, dateStr:
   });
 }
 
+function getMatchingSlotRange(schedule: DoctorScheduleDay[] | undefined, dateStr: string, timeStr: string): TimeRange | null {
+  if (!Array.isArray(schedule) || schedule.length === 0) return null;
+  const bookingDate = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(bookingDate.getTime())) return null;
+  const bookingMinutes = parseTimeToMinutes(timeStr);
+  if (bookingMinutes === null) return null;
+
+  const dayName = bookingDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  const daySchedule = schedule.find((d) => String(d.day).toLowerCase() === dayName);
+  if (!daySchedule || !daySchedule.isWorking) return null;
+
+  for (const slot of daySchedule.slots) {
+    if (!slot.isAvailable) continue;
+    const start = parseTimeToMinutes(slot.startTime);
+    const end = parseTimeToMinutes(slot.endTime);
+    if (start === null || end === null) continue;
+    if (bookingMinutes >= start && bookingMinutes < end) return { start, end };
+  }
+  return null;
+}
+
+function updateSlotFlag(schedule: DoctorScheduleDay[] | undefined, dateStr: string, timeStr: string, isAvailable: boolean) {
+  if (!Array.isArray(schedule) || schedule.length === 0) return schedule;
+  const bookingDate = new Date(`${dateStr}T00:00:00`);
+  const bookingMinutes = parseTimeToMinutes(timeStr);
+  if (Number.isNaN(bookingDate.getTime()) || bookingMinutes === null) return schedule;
+  const dayName = bookingDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+
+  return schedule.map((day) => {
+    if (String(day.day).toLowerCase() !== dayName) return day;
+    return {
+      ...day,
+      slots: day.slots.map((slot) => {
+        const start = parseTimeToMinutes(slot.startTime);
+        const end = parseTimeToMinutes(slot.endTime);
+        if (start === null || end === null) return slot;
+        if (bookingMinutes >= start && bookingMinutes < end) {
+          return { ...slot, isAvailable };
+        }
+        return slot;
+      }),
+    };
+  });
+}
+
 export const appointmentsService = {
   async listAll(filters: AppointmentFilters = {}) {
     await connectDB();
@@ -177,17 +223,23 @@ export const appointmentsService = {
     }
     if (!doctor) return { ok: false as const, code: 'NOT_FOUND' as const, message: 'Doctor not found' };
 
-    if (!isDoctorAvailableAt((doctor.availability as DoctorScheduleDay[]) || [], req.date, req.time)) {
+    const schedule = (doctor.availability as DoctorScheduleDay[]) || [];
+    if (!isDoctorAvailableAt(schedule, req.date, req.time)) {
       return { ok: false as const, code: 'INVALID_SLOT' as const, message: 'Doctor is not available at the selected day/time.' };
     }
+    const matchedRange = getMatchingSlotRange(schedule, req.date, req.time);
+    if (!matchedRange) return { ok: false as const, code: 'INVALID_SLOT' as const, message: 'Doctor is not available at the selected day/time.' };
 
-    const requestedMinutes = parseTimeToMinutes(req.time);
     const sameDayAppointments = await AppointmentModel.find({
       doctor: doctor._id,
       date: { $gte: startOfDay, $lte: endOfDay },
       status: { $in: ['Scheduled', 'Completed'] },
     }).select('timeSlot');
-    const hasConflict = sameDayAppointments.some((item) => parseTimeToMinutes(item.timeSlot) === requestedMinutes);
+    const hasConflict = sameDayAppointments.some((item) => {
+      const itemMinutes = parseTimeToMinutes(item.timeSlot);
+      if (itemMinutes === null) return false;
+      return itemMinutes >= matchedRange.start && itemMinutes < matchedRange.end;
+    });
     if (hasConflict) return { ok: false as const, code: 'CONFLICT' as const, message: 'This time slot is already booked.' };
 
     const patient = await PatientModel.findOne({ user: userId });
@@ -200,6 +252,8 @@ export const appointmentsService = {
       timeSlot: req.time,
       status: 'Scheduled',
     });
+    const updatedSchedule = updateSlotFlag(schedule, req.date, req.time, false);
+    await DoctorModel.findByIdAndUpdate(doctor._id, { availability: updatedSchedule });
 
     const populated = await apt.populate([
       { path: 'doctor', populate: { path: 'user' } },
@@ -220,6 +274,13 @@ export const appointmentsService = {
       .populate({ path: 'doctor', populate: { path: 'user' } })
       .populate({ path: 'patient', populate: { path: 'user' } });
     if (!doc) return { ok: false as const, code: 'NOT_FOUND' as const };
+    if (dbStatus === 'Cancelled' && doc.doctor?._id) {
+      const doctorDoc = await DoctorModel.findById(doc.doctor._id);
+      if (doctorDoc) {
+        const nextSchedule = updateSlotFlag(doctorDoc.availability as DoctorScheduleDay[], safeIso(doc.date).split('T')[0], doc.timeSlot, true);
+        await DoctorModel.findByIdAndUpdate(doctorDoc._id, { availability: nextSchedule });
+      }
+    }
     return { ok: true as const, data: mapAppointmentToFrontend(doc) };
   },
 

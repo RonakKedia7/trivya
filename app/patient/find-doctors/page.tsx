@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { appointmentsService, doctorsService } from "@/lib/api"
-import { Doctor } from "@/lib/types"
+import { Doctor, TimeSlot } from "@/lib/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,11 +18,6 @@ import {
 import { Search, User, Calendar, Clock, Star, MapPin, Loader2 } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
 import { departments } from "@/lib/constants"
-
-const TIME_SLOTS = [
-  "09:00 AM","09:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM",
-  "02:00 PM","02:30 PM","03:00 PM","03:30 PM","04:00 PM","04:30 PM",
-]
 
 export default function FindDoctorsPage() {
   const { user } = useAuth()
@@ -54,6 +49,10 @@ export default function FindDoctorsPage() {
         setIsLoading(false)
       })
   }, [searchTerm, specialization])
+
+  useEffect(() => {
+    setAppointmentTime("")
+  }, [appointmentDate, selectedDoctor?.id])
 
   const openBookingDialog = (doctor: Doctor) => {
     setSelectedDoctor(doctor)
@@ -89,6 +88,16 @@ export default function FindDoctorsPage() {
     }
 
     setIsBooking(false)
+  }
+
+  const availableSlotsForDate = (): TimeSlot[] => {
+    if (!selectedDoctor || !appointmentDate) return []
+    const selected = new Date(`${appointmentDate}T00:00:00`)
+    if (Number.isNaN(selected.getTime())) return []
+    const dayName = selected.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase()
+    const day = selectedDoctor.availability.find((d) => d.day.toLowerCase() === dayName)
+    if (!day || !day.isWorking) return []
+    return day.slots.filter((slot) => slot.isAvailable)
   }
 
   return (
@@ -223,7 +232,11 @@ export default function FindDoctorsPage() {
                   <Select value={appointmentTime} onValueChange={setAppointmentTime}>
                     <SelectTrigger><SelectValue placeholder="Select a time slot" /></SelectTrigger>
                     <SelectContent>
-                      {TIME_SLOTS.map((slot) => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
+                      {availableSlotsForDate().map((slot) => (
+                        <SelectItem key={`${slot.startTime}-${slot.endTime}`} value={slot.startTime}>
+                          {slot.startTime} - {slot.endTime}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

@@ -49,6 +49,7 @@ export interface AuthResponse {
     email: string;
     role: 'admin' | 'doctor' | 'patient';
     phone?: string;
+    mustChangePassword?: boolean;
     avatar?: string;
     createdAt: string;
   };
@@ -62,13 +63,17 @@ export interface CreateDoctorRequest {
   name: string;
   email: string;
   phone?: string;
-  password: string;       // hashed server-side in production
   specialization: string;
   department: string;
   qualification: string;
   experience: number;
   consultationFee: number;
   bio: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface UpdateDoctorRequest {

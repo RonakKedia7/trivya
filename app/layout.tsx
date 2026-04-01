@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RouteGuard } from "@/components/auth/route-guard";
+import AppFooter from "@/components/app-footer";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
@@ -39,7 +40,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <RouteGuard>{children}</RouteGuard>
+            <div className="min-h-screen">
+              <RouteGuard>{children}</RouteGuard>
+            </div>
+            <AppFooter />
           </AuthProvider>
           <Analytics />
         </ThemeProvider>

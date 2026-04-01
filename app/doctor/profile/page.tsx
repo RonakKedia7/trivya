@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { doctorsService } from '@/lib/api';
+import { authService, doctorsService } from '@/lib/api';
 import { Doctor } from '@/lib/types';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { PASSWORD_POLICY_TEXT, isStrongPassword } from '@/lib/utils/passwordPolicy';
 
 export default function DoctorProfilePage() {
   const { user } = useAuth();
@@ -14,6 +15,9 @@ export default function DoctorProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordError, setPasswordError] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -53,6 +57,37 @@ export default function DoctorProfilePage() {
     setIsSaving(false);
   };
 
+  const handleChangePassword = async () => {
+    setPasswordError('');
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      setPasswordError('All password fields are required');
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError('New password and confirmation must match');
+      return;
+    }
+    if (!isStrongPassword(passwordForm.newPassword)) {
+      setPasswordError(PASSWORD_POLICY_TEXT);
+      return;
+    }
+
+    setIsChangingPassword(true);
+    const res = await authService.changePassword({
+      currentPassword: passwordForm.currentPassword,
+      newPassword: passwordForm.newPassword,
+    });
+    setIsChangingPassword(false);
+
+    if (!res.success) {
+      setPasswordError(res.error || 'Failed to update password');
+      return;
+    }
+
+    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setMessage({ type: 'success', text: 'Password updated successfully' });
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -73,6 +108,11 @@ export default function DoctorProfilePage() {
 
   return (
     <div>
+      {user?.mustChangePassword && (
+        <div className="mb-4 rounded-lg border border-amber-300 bg-amber-100/50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-600/40 dark:bg-amber-900/20 dark:text-amber-200">
+          You must update your password before continuing.
+        </div>
+      )}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">My Profile</h1>
@@ -196,6 +236,51 @@ export default function DoctorProfilePage() {
                   rows={4}
                   className={inputCls}
                 />
+              </div>
+            </div>
+
+            <div className="mt-8 border-t border-border pt-6">
+              <h3 className="text-lg font-semibold text-foreground">Change Password</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{PASSWORD_POLICY_TEXT}</p>
+              {passwordError && <div className="mt-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{passwordError}</div>}
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground">Current Password</label>
+                  <input
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    className={inputCls}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">New Password</label>
+                    <input
+                      type="password"
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground">Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isChangingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isChangingPassword ? 'Updating...' : 'Update Password'}
+                </button>
               </div>
             </div>
           </div>

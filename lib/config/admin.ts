@@ -34,6 +34,7 @@ export function buildEnvAdminUser() {
     name: 'Administrator',
     email: admin.email,
     role: 'admin' as const,
+    mustChangePassword: false,
     createdAt: new Date(0).toISOString(),
   };
 }

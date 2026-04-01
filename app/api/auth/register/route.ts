@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     });
     if (!result.ok && result.code === 'ADMIN_REGISTRATION_DISABLED') return forbidden('Admin registration is disabled');
     if (!result.ok && result.code === 'EMAIL_EXISTS') return conflict('Email already registered');
+    if (!result.ok && result.code === 'WEAK_PASSWORD') return badRequest(result.message ?? 'Weak password');
     if (!result.ok) return serverError();
     return created(result.data);
   } catch {

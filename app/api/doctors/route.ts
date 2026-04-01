@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    if (!body?.name || !body?.email || !body?.password) return badRequest('name, email, and password are required');
+    if (!body?.name || !body?.email) return badRequest('name and email are required');
     const result = await doctorsService.create(body);
     if (!result.ok && result.code === 'EMAIL_EXISTS') return conflict('A doctor with this email already exists');
     if (!result.ok) return serverError();
