@@ -6,6 +6,7 @@ import { authService, doctorsService } from '@/lib/api';
 import { Doctor } from '@/lib/types';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { PASSWORD_POLICY_TEXT, isStrongPassword } from '@/lib/utils/passwordPolicy';
+import { clearLastLoginPassword, getLastLoginPassword } from '@/lib/api/client';
 
 export default function DoctorProfilePage() {
   const { user } = useAuth();
@@ -30,6 +31,14 @@ export default function DoctorProfilePage() {
       setIsLoading(false);
     });
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.mustChangePassword) return;
+    const rememberedPassword = getLastLoginPassword();
+    if (rememberedPassword) {
+      setPasswordForm((prev) => ({ ...prev, currentPassword: rememberedPassword }));
+    }
+  }, [user?.mustChangePassword]);
 
   const handleSave = async () => {
     if (!profile) return;
@@ -84,6 +93,7 @@ export default function DoctorProfilePage() {
       return;
     }
 
+    clearLastLoginPassword();
     setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     setMessage({ type: 'success', text: 'Password updated successfully' });
   };
@@ -251,7 +261,13 @@ export default function DoctorProfilePage() {
                     value={passwordForm.currentPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                     className={inputCls}
+                    placeholder={user?.mustChangePassword ? 'Auto-filled from this login session' : ''}
                   />
+                  {user?.mustChangePassword && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Auto-filled from your temporary login to reduce friction.
+                    </p>
+                  )}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>

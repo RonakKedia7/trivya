@@ -1,5 +1,5 @@
 import type { ApiResponse, AuthResponse, ChangePasswordRequest, LoginRequest, RegisterRequest } from './types';
-import { apiFetch, clearAccessToken, setAccessToken } from './client';
+import { apiFetch, clearAccessToken, clearLastLoginPassword, setAccessToken, setLastLoginPassword } from './client';
 
 export const authService = {
   async login(req: LoginRequest): Promise<ApiResponse<AuthResponse>> {
@@ -7,7 +7,10 @@ export const authService = {
       method: 'POST',
       body: JSON.stringify(req),
     });
-    if (res.success && res.data?.token) setAccessToken(res.data.token);
+    if (res.success && res.data?.token) {
+      setAccessToken(res.data.token);
+      setLastLoginPassword(req.password);
+    }
     return res;
   },
 
@@ -22,6 +25,7 @@ export const authService = {
 
   async logout(): Promise<ApiResponse<null>> {
     clearAccessToken();
+    clearLastLoginPassword();
     return apiFetch<ApiResponse<null>>('/auth/logout', { method: 'POST' });
   },
 

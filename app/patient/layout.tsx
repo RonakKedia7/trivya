@@ -131,7 +131,7 @@ export default function PatientLayout({
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 lg:px-6 lg:hidden">
+        <header className="flex h-16 items-center gap-4 border-b border-border bg-card/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 lg:px-6">
           <Button
             variant="ghost"
             size="icon"
@@ -140,13 +140,11 @@ export default function PatientLayout({
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg">
-            <img src="/logo.png" alt="Logo" />
-          </div>
+
           <div className="flex-1" />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <ThemeToggle />
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-primary/10">
               <User className="h-4 w-4 text-primary" />
             </div>
             <span className="text-sm font-medium text-foreground hidden sm:inline">

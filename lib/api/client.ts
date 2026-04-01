@@ -1,20 +1,37 @@
 // lib/api/client.ts — browser-safe fetch wrapper for Next.js API routes
 
 export const API_BASE = '/api';
+const TOKEN_KEY = 'hms_token';
+const LAST_LOGIN_PASSWORD_KEY = 'hms_last_login_password';
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('hms_token');
+  return sessionStorage.getItem(TOKEN_KEY);
 }
 
 export function setAccessToken(token: string) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem('hms_token', token);
+  sessionStorage.setItem(TOKEN_KEY, token);
 }
 
 export function clearAccessToken() {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem('hms_token');
+  sessionStorage.removeItem(TOKEN_KEY);
+}
+
+export function setLastLoginPassword(password: string) {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(LAST_LOGIN_PASSWORD_KEY, password);
+}
+
+export function getLastLoginPassword() {
+  if (typeof window === 'undefined') return null;
+  return sessionStorage.getItem(LAST_LOGIN_PASSWORD_KEY);
+}
+
+export function clearLastLoginPassword() {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(LAST_LOGIN_PASSWORD_KEY);
 }
 
 /**
