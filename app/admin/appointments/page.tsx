@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { departments } from '@/lib/mock-data';
+import { departments } from '@/lib/constants';
 import { Appointment } from '@/lib/types';
 import { appointmentsService } from '@/lib/api';
 import { DatePicker } from '@/components/ui/date-picker';

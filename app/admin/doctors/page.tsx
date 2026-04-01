@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Doctor } from '@/lib/types';
 import { doctorsService, appointmentsService } from '@/lib/api';
 import type { CreateDoctorRequest } from '@/lib/api';
-import { departments } from '@/lib/mock-data';
+import { departments } from '@/lib/constants';
 import {
   Select,
   SelectContent,

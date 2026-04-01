@@ -1,63 +1,79 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useAuth } from "@/context/AuthContext"
-import { mockPatients } from "@/lib/mock-data"
-import { patientsService } from "@/lib/api"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { patientsService } from "@/lib/api";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { User, Mail, Phone, MapPin, Heart, Save } from "lucide-react"
-import { Patient } from "@/lib/types"
-import { DatePicker } from "@/components/ui/date-picker"
+} from "@/components/ui/select";
+import { User, Mail, Phone, MapPin, Heart, Save, Loader2 } from "lucide-react";
+import { Patient } from "@/lib/types";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export default function PatientProfilePage() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
-  const patientData = mockPatients.find((p) => p.id === user?.id) || {
-    id: user?.id || "",
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: "",
-    dateOfBirth: "",
-    gender: "male" as const,
-    bloodGroup: "",
-    address: "",
-    emergencyContact: "",
-    medicalHistory: "",
-    allergies: "",
-    createdAt: new Date().toISOString(),
-  }
+  const [formData, setFormData] = useState<Partial<Patient>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [formData, setFormData] = useState<Partial<Patient>>(patientData)
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState("")
+  useEffect(() => {
+    if (!user?.id) return;
+    setIsLoading(true);
+    patientsService.getById(user.id).then((res) => {
+      if (res.success && res.data) {
+        setFormData(res.data);
+      } else {
+        setFormData({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          phone: "",
+          dateOfBirth: "",
+          gender: "male",
+          bloodGroup: "",
+          address: "",
+          emergencyContact: "",
+          medicalHistory: "",
+          allergies: "",
+        });
+      }
+      setIsLoading(false);
+    });
+  }, [user]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user?.id) return
-    setIsSaving(true)
-    setSaveMessage("")
+    e.preventDefault();
+    if (!user?.id) return;
+    setIsSaving(true);
+    setSaveMessage("");
     const res = await patientsService.updateProfile(user.id, {
       name: formData.name,
       phone: formData.phone,
@@ -66,9 +82,21 @@ export default function PatientProfilePage() {
       bloodGroup: formData.bloodGroup,
       address: formData.address,
       emergencyContact: formData.emergencyContact,
-    })
-    setSaveMessage(res.success ? "Profile saved successfully!" : res.error ?? "Save failed")
-    setIsSaving(false)
+    });
+    setSaveMessage(
+      res.success
+        ? "Profile saved successfully!"
+        : (res.error ?? "Save failed"),
+    );
+    setIsSaving(false);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-full min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -88,9 +116,7 @@ export default function PatientProfilePage() {
               <User className="h-5 w-5" />
               Personal Information
             </CardTitle>
-            <CardDescription>
-              Update your personal details
-            </CardDescription>
+            <CardDescription>Update your personal details</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6 sm:grid-cols-2">
             <div className="grid gap-2">
@@ -161,7 +187,9 @@ export default function PatientProfilePage() {
               <Label htmlFor="bloodGroup">Blood Group</Label>
               <Select
                 value={formData.bloodGroup || ""}
-                onValueChange={(value) => handleSelectChange("bloodGroup", value)}
+                onValueChange={(value) =>
+                  handleSelectChange("bloodGroup", value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select blood group" />
@@ -187,7 +215,7 @@ export default function PatientProfilePage() {
                   name="address"
                   value={formData.address || ""}
                   onChange={handleInputChange}
-                  className="pl-9 min-h-[80px]"
+                  className="pl-9 min-h-20"
                   placeholder="Enter your full address"
                 />
               </div>
@@ -234,7 +262,7 @@ export default function PatientProfilePage() {
                 name="medicalHistory"
                 value={formData.medicalHistory || ""}
                 onChange={handleInputChange}
-                className="min-h-[120px]"
+                className="min-h-30"
                 placeholder="Previous surgeries, chronic conditions, ongoing treatments, etc."
               />
             </div>
@@ -243,7 +271,9 @@ export default function PatientProfilePage() {
 
         <div className="flex items-center justify-end gap-4">
           {saveMessage && (
-            <p className={`text-sm ${saveMessage.includes("success") ? "text-success" : "text-destructive"}`}>
+            <p
+              className={`text-sm ${saveMessage.includes("success") ? "text-success" : "text-destructive"}`}
+            >
               {saveMessage}
             </p>
           )}
@@ -254,5 +284,5 @@ export default function PatientProfilePage() {
         </div>
       </form>
     </div>
-  )
+  );
 }

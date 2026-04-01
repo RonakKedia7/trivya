@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { mockDoctors } from '@/lib/mock-data';
-import { Appointment, AppointmentStatus, MedicalRecord } from '@/lib/types';
-import { appointmentsService, medicalRecordsService } from '@/lib/api';
+import { Appointment, AppointmentStatus, Doctor, MedicalRecord } from '@/lib/types';
+import { appointmentsService, doctorsService, medicalRecordsService } from '@/lib/api';
 import type { CreateMedicalRecordRequest } from '@/lib/api';
 import { DatePicker } from '@/components/ui/date-picker';
 import {
@@ -14,7 +13,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function DoctorAppointmentsPage() {
   const { user } = useAuth();
-  const currentDoctor = mockDoctors.find(d => d.email === user?.email) ?? mockDoctors[0];
+  const [currentDoctor, setCurrentDoctor] = useState<Doctor | null>(null);
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +27,15 @@ export default function DoctorAppointmentsPage() {
   const [existingRecord, setExistingRecord] = useState<MedicalRecord | null>(null);
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!currentDoctor) {
+      doctorsService.getById(user.id).then(res => {
+         if (res.success && res.data) setCurrentDoctor(res.data);
+      });
+    }
+  }, [user, currentDoctor]);
 
   useEffect(() => {
     if (!user) return;
@@ -76,7 +84,7 @@ export default function DoctorAppointmentsPage() {
   };
 
   const saveDraft = async (finalize: boolean) => {
-    if (!selectedAppointment) return;
+    if (!selectedAppointment || !currentDoctor) return;
     setIsSaving(true);
     setFormError('');
 

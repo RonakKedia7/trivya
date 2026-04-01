@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { mockDoctors } from "@/lib/mock-data";
 import ThemeToggle from "@/components/theme-toggle";
 import { useEffect, useState } from "react";
-import { Appointment } from "@/lib/types";
-import { appointmentsService } from "@/lib/api";
+import { Appointment, Doctor } from "@/lib/types";
+import { appointmentsService, doctorsService } from "@/lib/api";
 import type { DoctorDashboardStats } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
@@ -14,8 +13,8 @@ const TODAY = new Date().toISOString().split("T")[0];
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
-  const currentDoctor = mockDoctors.find((d) => d.email === user?.email) ?? mockDoctors[0];
 
+  const [currentDoctor, setCurrentDoctor] = useState<Doctor | null>(null);
   const [stats, setStats] = useState<DoctorDashboardStats | null>(null);
   const [todayApts, setTodayApts] = useState<Appointment[]>([]);
   const [upcomingApts, setUpcomingApts] = useState<Appointment[]>([]);
@@ -23,17 +22,25 @@ export default function DoctorDashboard() {
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      appointmentsService.getDoctorStats(currentDoctor.id, TODAY),
-      appointmentsService.getMine(user, { date: TODAY }),
-      appointmentsService.getMine(user, { status: 'scheduled' }),
-    ]).then(([statsRes, todayRes, upcomingRes]) => {
-      if (statsRes.success) setStats(statsRes.data);
-      if (todayRes.success) setTodayApts(todayRes.data);
-      if (upcomingRes.success) setUpcomingApts(upcomingRes.data.slice(0, 5));
-      setIsLoading(false);
+    
+    doctorsService.getById(user.id).then((docRes) => {
+      if (docRes.success && docRes.data) {
+        setCurrentDoctor(docRes.data);
+        Promise.all([
+          appointmentsService.getDoctorStats(docRes.data.id, TODAY),
+          appointmentsService.getMine(user, { date: TODAY }),
+          appointmentsService.getMine(user, { status: 'scheduled' }),
+        ]).then(([statsRes, todayRes, upcomingRes]) => {
+          if (statsRes.success) setStats(statsRes.data);
+          if (todayRes.success) setTodayApts(todayRes.data);
+          if (upcomingRes.success) setUpcomingApts(upcomingRes.data.slice(0, 5));
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
     });
-  }, [user, currentDoctor.id]);
+  }, [user]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -45,7 +52,7 @@ export default function DoctorDashboard() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !currentDoctor) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/context/AuthContext"
 import { appointmentsService } from "@/lib/api"
 import { Appointment } from "@/lib/types"
-import { mockDoctors } from "@/lib/mock-data"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,8 +33,6 @@ export default function PatientAppointmentsPage() {
   const past       = appointments.filter(a => a.status === "completed")
   const cancelled  = appointments.filter(a => a.status === "cancelled")
 
-  const getDoctorDetails = (id: string) => mockDoctors.find(d => d.id === id)
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "scheduled": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
@@ -53,7 +50,6 @@ export default function PatientAppointmentsPage() {
   }
 
   const AppointmentCard = ({ appointment, showActions = false }: { appointment: Appointment; showActions?: boolean }) => {
-    const doctor = getDoctorDetails(appointment.doctorId)
     return (
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-lg border border-border p-4">
         <div className="flex items-center gap-4">
@@ -61,8 +57,8 @@ export default function PatientAppointmentsPage() {
             <User className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <p className="font-medium text-foreground">Dr. {doctor?.name ?? "Unknown"}</p>
-            <p className="text-sm text-muted-foreground">{doctor?.specialization ?? "General"}</p>
+            <p className="font-medium text-foreground">Dr. {appointment.doctorName}</p>
+            <p className="text-sm text-muted-foreground">{appointment.department}</p>
             <p className="text-sm text-muted-foreground mt-1">{appointment.reason}</p>
           </div>
         </div>
@@ -91,7 +87,7 @@ export default function PatientAppointmentsPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to cancel this appointment with Dr. {doctor?.name}? This action cannot be undone.
+                    Are you sure you want to cancel this appointment with Dr. {appointment.doctorName}? This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

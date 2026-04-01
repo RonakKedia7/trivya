@@ -12,8 +12,6 @@ import ThemeToggle from "@/components/theme-toggle";
 import { useEffect, useState } from "react";
 import { Appointment, MedicalRecord } from "@/lib/types";
 import { appointmentsService, medicalRecordsService } from "@/lib/api";
-import { mockDoctors } from "@/lib/mock-data";
-
 export default function PatientDashboard() {
   const { user } = useAuth();
 
@@ -47,14 +45,6 @@ export default function PatientDashboard() {
     });
   }, [user]);
 
-  const getDoctorName = (doctorId: string) => {
-    const doctor = mockDoctors.find((d) => d.id === doctorId);
-    return doctor ? doctor.name : "Unknown Doctor";
-  };
-
-  const getDoctorSpecialization = (doctorId: string) => {
-    return mockDoctors.find((d) => d.id === doctorId)?.specialization ?? "General";
-  };
 
   if (isLoading) {
     return (
@@ -151,8 +141,8 @@ export default function PatientDashboard() {
                         <User className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium text-foreground">{getDoctorName(appointment.doctorId)}</p>
-                        <p className="text-sm text-muted-foreground">{getDoctorSpecialization(appointment.doctorId)}</p>
+                        <p className="font-medium text-foreground">{appointment.doctorName}</p>
+                        <p className="text-sm text-muted-foreground">{appointment.department}</p>
                       </div>
                     </div>
                     <div className="text-right">

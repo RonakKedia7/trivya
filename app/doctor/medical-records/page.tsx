@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { mockDoctors } from '@/lib/mock-data';
-import { MedicalRecord } from '@/lib/types';
-import { medicalRecordsService, appointmentsService } from '@/lib/api';
+import { Doctor, MedicalRecord } from '@/lib/types';
+import { medicalRecordsService, appointmentsService, doctorsService } from '@/lib/api';
 import type { CreateMedicalRecordRequest } from '@/lib/api';
 import { Appointment } from '@/lib/types';
 import {
@@ -14,7 +13,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function DoctorMedicalRecordsPage() {
   const { user } = useAuth();
-  const currentDoctor = mockDoctors.find(d => d.email === user?.email) ?? mockDoctors[0];
+  const [currentDoctor, setCurrentDoctor] = useState<Doctor | null>(null);
 
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [completedAppointments, setCompletedAppointments] = useState<Appointment[]>([]);
@@ -29,15 +28,22 @@ export default function DoctorMedicalRecordsPage() {
 
   useEffect(() => {
     if (!user) return;
-    Promise.all([
-      medicalRecordsService.getByDoctor(currentDoctor.id),
-      appointmentsService.getMine(user, { status: 'completed' }),
-    ]).then(([recRes, aptRes]) => {
-      if (recRes.success) setRecords(recRes.data);
-      if (aptRes.success) setCompletedAppointments(aptRes.data);
-      setIsLoading(false);
+    doctorsService.getById(user.id).then(docRes => {
+       if (docRes.success && docRes.data) {
+          setCurrentDoctor(docRes.data);
+          Promise.all([
+            medicalRecordsService.getByDoctor(docRes.data.id),
+            appointmentsService.getMine(user, { status: 'completed' }),
+          ]).then(([recRes, aptRes]) => {
+            if (recRes.success) setRecords(recRes.data);
+            if (aptRes.success) setCompletedAppointments(aptRes.data);
+            setIsLoading(false);
+          });
+       } else {
+          setIsLoading(false);
+       }
     });
-  }, [user, currentDoctor.id]);
+  }, [user]);
 
   const availableAppointments = completedAppointments.filter(
     a => !records.some(r => r.appointmentId === a.id)
@@ -45,7 +51,7 @@ export default function DoctorMedicalRecordsPage() {
 
   const handleCreateRecord = async () => {
     const appointment = completedAppointments.find(a => a.id === selectedAppointmentId);
-    if (!appointment) return;
+    if (!appointment || !currentDoctor) return;
 
     setIsSaving(true);
     const req: CreateMedicalRecordRequest = {

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { Search, User, Calendar, Clock, Star, MapPin, Loader2 } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
-import { departments } from "@/lib/mock-data"
+import { departments } from "@/lib/constants"
 
 const TIME_SLOTS = [
   "09:00 AM","09:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM",
