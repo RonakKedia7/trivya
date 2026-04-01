@@ -7,8 +7,8 @@ import { authService } from '@/lib/api';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; user?: User }>;
-  register: (data: RegisterData) => Promise<{ success: boolean; user?: User }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; user?: User }> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
     setIsLoading(true);
     const res = await authService.login({ email, password });
     if (res.success && res.data) {
@@ -46,16 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true, user: res.data.user as User };
     }
     setIsLoading(false);
-    return { success: false };
+    return { success: false, error: res.error || 'Invalid email or password' };
   };
 
-  const register = async (data: RegisterData): Promise<{ success: boolean; user?: User }> => {
+  const register = async (data: RegisterData): Promise<{ success: boolean; user?: User; error?: string }> => {
     setIsLoading(true);
     const res = await authService.register({
       name: data.name,
       email: data.email,
       password: data.password,
-      role: data.role,
+      role: data.role as 'doctor' | 'patient',
       phone: data.phone,
     });
     if (res.success && res.data) {
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true, user: res.data.user as User };
     }
     setIsLoading(false);
-    return { success: false };
+    return { success: false, error: res.error || 'Registration failed' };
   };
 
   /**

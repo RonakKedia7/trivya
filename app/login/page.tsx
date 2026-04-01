@@ -17,8 +17,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-
-    const { success, user } = await login(email, password);
+    const { success, user, error: loginError } = await login(email, password);
 
     if (success && user) {
       switch (user.role) {
@@ -36,18 +35,13 @@ export default function LoginPage() {
       }
     } else {
       setError(
-        "Invalid email or password. Try: admin@hospital.com, dr.smith@hospital.com, or alice@email.com",
+        loginError || "Invalid email or password.",
       );
     }
 
     setIsLoading(false);
   };
 
-  const demoAccounts = [
-    { role: "Admin", email: "admin@hospital.com" },
-    { role: "Doctor", email: "dr.smith@hospital.com" },
-    { role: "Patient", email: "alice@email.com" },
-  ];
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -151,29 +145,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo Accounts */}
-          <div className="mt-8 rounded-lg border border-border bg-card p-4">
-            <p className="text-sm font-medium text-foreground">
-              Demo Accounts (any password works):
-            </p>
-            <div className="mt-3 space-y-2">
-              {demoAccounts.map((account) => (
-                <button
-                  key={account.email}
-                  type="button"
-                  onClick={() => setEmail(account.email)}
-                  className="flex w-full cursor-pointer items-center justify-between rounded-lg bg-secondary px-3 py-2 text-sm transition-colors hover:bg-secondary/80"
-                >
-                  <span className="font-medium text-foreground">
-                    {account.role}
-                  </span>
-                  <span className="min-w-0 truncate pl-2 text-muted-foreground">
-                    {account.email}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {"Don't have an account? "}

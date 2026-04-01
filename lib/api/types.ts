@@ -38,7 +38,7 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  role: 'admin' | 'doctor' | 'patient';
+  role: 'doctor' | 'patient';
   phone?: string;
 }
 

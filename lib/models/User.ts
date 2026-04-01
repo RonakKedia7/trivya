@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IUser extends Document {
   name: string;
   email: string;
-  password?: string;
+  password: string;
   role: 'Admin' | 'Doctor' | 'Patient';
   phone?: string;
   createdAt: Date;
@@ -12,7 +12,7 @@ export interface IUser extends Document {
 const UserSchema: Schema = new Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: false }, // Optional for dummy data, but usually required
+  password: { type: String, required: true },
   role: { type: String, enum: ['Admin', 'Doctor', 'Patient'], default: 'Patient' },
   phone: { type: String, required: false },
   createdAt: { type: Date, default: Date.now },

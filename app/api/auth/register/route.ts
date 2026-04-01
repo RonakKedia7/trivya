@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { authService } from '@/lib/services/auth.service';
-import { badRequest, conflict, created, serverError } from '@/lib/utils/apiResponse';
+import { badRequest, conflict, created, forbidden, serverError } from '@/lib/utils/apiResponse';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       role: body.role ?? 'patient',
       phone: body.phone,
     });
+    if (!result.ok && result.code === 'ADMIN_REGISTRATION_DISABLED') return forbidden('Admin registration is disabled');
     if (!result.ok && result.code === 'EMAIL_EXISTS') return conflict('Email already registered');
     if (!result.ok) return serverError();
     return created(result.data);
