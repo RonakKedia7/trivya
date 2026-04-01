@@ -16,4 +16,4 @@ export { medicalRecordsService } from './medical-records.service';
 
 // Re-export shared types
 export type * from './types';
-export { BASE_URL, apiFetch, simulateDelay } from './client';
+export { apiFetch, API_BASE } from './client';

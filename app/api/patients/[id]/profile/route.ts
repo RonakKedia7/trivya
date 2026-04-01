@@ -1,17 +1,16 @@
-// app/api/patients/[id]/profile/route.ts
-// PUT /api/patients/:id/profile  → self or admin
-// PRODUCTION: Validate JWT; enforce self-access rule; update MongoDB users + patients docs
-import { NextRequest, NextResponse } from 'next/server';
-import { patientsService } from '@/lib/api';
+import { NextRequest } from 'next/server';
+import { patientsService } from '@/lib/services/patients.service';
+import { badRequest, notFound, ok, serverError } from '@/lib/utils/apiResponse';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
+    if (!body || typeof body !== 'object') return badRequest('Invalid request body');
     const result = await patientsService.updateProfile(id, body);
-    if (!result.success) return NextResponse.json(result, { status: 404 });
-    return NextResponse.json(result, { status: 200 });
+    if (!result.ok) return notFound('Patient not found');
+    return ok(result.data, 'Profile updated successfully');
   } catch {
-    return NextResponse.json({ success: false, error: 'Invalid request body' }, { status: 400 });
+    return serverError();
   }
 }

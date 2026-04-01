@@ -1,0 +1,895 @@
+﻿
+> my-project@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.0 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+node.exe : 
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+> Build error occurred
+Error: Turbopack build failed with 17 
+errors:
+./node_modules/mongoose/lib/mongoose.js:42:3
+1
+Module not found: Can't resolve 
+'async_hooks'
+  [90m40 |[0m [36mconst[0m 
+objectIdHexRegexp = 
+[35m/^[0-9A-Fa-f]{24}$/[0m;
+  [90m41 |[0m
+[31m[1m>[0m [90m42 |[0m [36mconst[0m 
+{ [33mAsyncLocalStorage[0m } = 
+require([32m'async_hooks'[0m);
+  [90m   |[0m                             
+  [31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m43 |[0m
+  [90m44 |[0m /**
+  [90m45 |[0m  * [33mMongoose[0m 
+constructor.
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongoose/lib/mongoose.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/api/appointments.service.ts 
+[Client Component Browser]
+    ./app/patient/page.tsx [Client 
+Component Browser]
+    ./app/patient/page.tsx [Server 
+Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/client-side-encry
+ption/mongocryptd_manager.js:39:27
+Module not found: Can't resolve 
+'child_process'
+  [90m37 |[0m         [36mconst[0m 
+cmdName = [36mthis[0m.spawnPath || 
+[32m'mongocryptd'[0m;
+  [90m38 |[0m         [90m// 
+eslint-disable-next-line 
+@typescript-eslint/no-require-imports[0m
+[31m[1m>[0m [90m39 |[0m         
+[36mconst[0m { spawn } = 
+require([32m'child_process'[0m);
+  [90m   |[0m                           
+[31m[1m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m40 |[0m         [90m// Spawned 
+with stdio: ignore and detached: true[0m
+  [90m41 |[0m         [90m// to ensure 
+child can outlive parent.[0m
+  [90m42 |[0m         
+[36mthis[0m._child = spawn(cmdName, 
+[36mthis[0m.spawnArgs, {
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/client-side-e
+ncryption/mongocryptd_manager.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/client-side-e
+ncryption/auto_encrypter.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/Doctor.ts [Client 
+Component Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/cmap/auth/gssapi.
+js:6:13
+Module not found: Can't resolve 'dns'
+  [90m4 |[0m 
+exports.performGSSAPICanonicalizeHostName = 
+performGSSAPICanonicalizeHostName;
+  [90m5 |[0m exports.resolveCname = 
+resolveCname;
+[31m[1m>[0m [90m6 |[0m [36mconst[0m 
+dns = require([32m"dns"[0m);
+  [90m  |[0m             
+[31m[1m^^^^^^^^^^^^^^[0m
+  [90m7 |[0m [36mconst[0m os = 
+require([32m"os"[0m);
+  [90m8 |[0m [36mconst[0m deps_1 = 
+require([32m"../../deps"[0m);
+  [90m9 |[0m [36mconst[0m error_1 = 
+require([32m"../../error"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/cmap/auth/gss
+api.js [Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/api/patients.service.ts [Client 
+Component Browser]
+    ./app/admin/patients/page.tsx [Client 
+Component Browser]
+    ./app/admin/patients/page.tsx [Server 
+Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/connection_string
+.js:6:13
+Module not found: Can't resolve 'dns'
+  [90m4 |[0m exports.resolveSRVRecord = 
+resolveSRVRecord;
+  [90m5 |[0m exports.parseOptions = 
+parseOptions;
+[31m[1m>[0m [90m6 |[0m [36mconst[0m 
+dns = require([32m"dns"[0m);
+  [90m  |[0m             
+[31m[1m^^^^^^^^^^^^^^[0m
+  [90m7 |[0m [36mconst[0m 
+mongodb_connection_string_url_1 = require([
+32m"mongodb-connection-string-url"[0m);
+  [90m8 |[0m [36mconst[0m process = 
+require([32m"process"[0m);
+  [90m9 |[0m [36mconst[0m url_1 = 
+require([32m"url"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/connection_st
+ring.js [Client Component Browser]
+    
+./node_modules/mongodb/lib/mongo_client.js 
+[Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/User.ts [Client Component 
+Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/sdam/srv_polling.
+js:4:13
+Module not found: Can't resolve 'dns'
+  [90m2 |[0m 
+[33mObject[0m.defineProperty(exports, 
+[32m"__esModule"[0m, { value: 
+[36mtrue[0m });
+  [90m3 |[0m exports.[33mSrvPoller[0m = 
+exports.[33mSrvPollingEvent[0m = 
+[36mvoid[0m [35m0[0m;
+[31m[1m>[0m [90m4 |[0m [36mconst[0m 
+dns = require([32m"dns"[0m);
+  [90m  |[0m             
+[31m[1m^^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mconst[0m timers_1 = 
+require([32m"timers"[0m);
+  [90m6 |[0m [36mconst[0m error_1 = 
+require([32m"../error"[0m);
+  [90m7 |[0m [36mconst[0m mongo_types_1 
+= require([32m"../mongo_types"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/sdam/srv_poll
+ing.js [Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/User.ts [Client Component 
+Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/cmap/auth/mongodb
+_oidc/token_machine_workflow.js:4:12
+Module not found: Can't resolve 'fs'
+  [90m2 |[0m 
+[33mObject[0m.defineProperty(exports, 
+[32m"__esModule"[0m, { value: 
+[36mtrue[0m });
+  [90m3 |[0m exports.callback = 
+[36mvoid[0m [35m0[0m;
+[31m[1m>[0m [90m4 |[0m [36mconst[0m 
+fs = require([32m"fs"[0m);
+  [90m  |[0m            
+[31m[1m^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mconst[0m process = 
+require([32m"process"[0m);
+  [90m6 |[0m [36mconst[0m error_1 = 
+require([32m"../../../error"[0m);
+  [90m7 |[0m [90m/** Error for when the 
+token is missing in the environment. */[0m
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/cmap/auth/mon
+godb_oidc/token_machine_workflow.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/cmap/auth/mon
+godb_oidc.js [Client Component Browser]
+    ./node_modules/mongodb/lib/mongo_client_
+auth_providers.js [Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/dbConfig.ts [Client Component 
+Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/mongo_client.js:4
+:14
+Module not found: Can't resolve 'fs'
+  [90m2 |[0m 
+[33mObject[0m.defineProperty(exports, 
+[32m"__esModule"[0m, { value: 
+[36mtrue[0m });
+  [90m3 |[0m exports.[33mMongoClient[0m 
+= exports.[33mServerApiVersion[0m = 
+[36mvoid[0m [35m0[0m;
+[31m[1m>[0m [90m4 |[0m [36mconst[0m 
+fs_1 = require([32m"fs"[0m);
+  [90m  |[0m              
+[31m[1m^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mconst[0m _1 = 
+require([32m"."[0m);
+  [90m6 |[0m [36mconst[0m bson_1 = 
+require([32m"./bson"[0m);
+  [90m7 |[0m [36mconst[0m 
+change_stream_1 = 
+require([32m"./change_stream"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    
+./node_modules/mongodb/lib/mongo_client.js 
+[Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/User.ts [Client Component 
+Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/utils.js:53:14
+Module not found: Can't resolve 'fs'
+  [90m51 |[0m exports.abortable = 
+abortable;
+  [90m52 |[0m [36mconst[0m crypto = 
+require([32m"crypto"[0m);
+[31m[1m>[0m [90m53 |[0m [36mconst[0m 
+fs_1 = require([32m"fs"[0m);
+  [90m   |[0m              
+[31m[1m^^^^^^^^^^^^^[0m
+  [90m54 |[0m [36mconst[0m http = 
+require([32m"http"[0m);
+  [90m55 |[0m [36mconst[0m process = 
+require([32m"process"[0m);
+  [90m56 |[0m [36mconst[0m timers_1 = 
+require([32m"timers"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/utils.js 
+[Client Component Browser]
+    
+./node_modules/mongodb/lib/change_stream.js 
+[Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/dbConfig.ts [Client Component 
+Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/client-side-encry
+ption/state_machine.js:4:12
+Module not found: Can't resolve 
+'fs/promises'
+  [90m2 |[0m 
+[33mObject[0m.defineProperty(exports, 
+[32m"__esModule"[0m, { value: 
+[36mtrue[0m });
+  [90m3 |[0m 
+exports.[33mStateMachine[0m = 
+[36mvoid[0m [35m0[0m;
+[31m[1m>[0m [90m4 |[0m [36mconst[0m 
+fs = require([32m"fs/promises"[0m);
+  [90m  |[0m            
+[31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mconst[0m net = 
+require([32m"net"[0m);
+  [90m6 |[0m [36mconst[0m process = 
+require([32m"process"[0m);
+  [90m7 |[0m [36mconst[0m tls = 
+require([32m"tls"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/client-side-e
+ncryption/state_machine.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/client-side-e
+ncryption/auto_encrypter.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/Doctor.ts [Client 
+Component Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/cmap/auth/mongodb
+_oidc/k8s_machine_workflow.js:4:20
+Module not found: Can't resolve 
+'fs/promises'
+  [90m2 |[0m 
+[33mObject[0m.defineProperty(exports, 
+[32m"__esModule"[0m, { value: 
+[36mtrue[0m });
+  [90m3 |[0m exports.callback = 
+[36mvoid[0m [35m0[0m;
+[31m[1m>[0m [90m4 |[0m [36mconst[0m 
+promises_1 = 
+require([32m"fs/promises"[0m);
+  [90m  |[0m                    
+[31m[1m^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mconst[0m process = 
+require([32m"process"[0m);
+  [90m6 |[0m [90m/** The fallback file 
+name */[0m
+  [90m7 |[0m [36mconst[0m 
+[33mFALLBACK_FILENAME[0m = [32m'/var/run/
+secrets/kubernetes.io/serviceaccount/token'
+[0m;
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/cmap/auth/mon
+godb_oidc/k8s_machine_workflow.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/cmap/auth/mon
+godb_oidc.js [Client Component Browser]
+    ./node_modules/mongodb/lib/mongo_client_
+auth_providers.js [Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/dbConfig.ts [Client Component 
+Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/client-side-encry
+ption/auto_encrypter.js:5:13
+Module not found: Can't resolve 'net'
+  [90m3 |[0m 
+[33mObject[0m.defineProperty(exports, 
+[32m"__esModule"[0m, { value: 
+[36mtrue[0m });
+  [90m4 |[0m 
+exports.[33mAutoEncrypter[0m = 
+exports.[33mAutoEncryptionLoggerLevel[0m 
+= [36mvoid[0m [35m0[0m;
+[31m[1m>[0m [90m5 |[0m [36mconst[0m 
+net = require([32m"net"[0m);
+  [90m  |[0m             
+[31m[1m^^^^^^^^^^^^^^[0m
+  [90m6 |[0m [36mconst[0m bson_1 = 
+require([32m"../bson"[0m);
+  [90m7 |[0m [36mconst[0m constants_1 = 
+require([32m"../constants"[0m);
+  [90m8 |[0m [36mconst[0m deps_1 = 
+require([32m"../deps"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/client-side-e
+ncryption/auto_encrypter.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/Doctor.ts [Client 
+Component Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/client-side-encry
+ption/state_machine.js:5:13
+Module not found: Can't resolve 'net'
+  [90m3 |[0m 
+exports.[33mStateMachine[0m = 
+[36mvoid[0m [35m0[0m;
+  [90m4 |[0m [36mconst[0m fs = 
+require([32m"fs/promises"[0m);
+[31m[1m>[0m [90m5 |[0m [36mconst[0m 
+net = require([32m"net"[0m);
+  [90m  |[0m             
+[31m[1m^^^^^^^^^^^^^^[0m
+  [90m6 |[0m [36mconst[0m process = 
+require([32m"process"[0m);
+  [90m7 |[0m [36mconst[0m tls = 
+require([32m"tls"[0m);
+  [90m8 |[0m [36mconst[0m bson_1 = 
+require([32m"../bson"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/client-side-e
+ncryption/state_machine.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/client-side-e
+ncryption/auto_encrypter.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/Doctor.ts [Client 
+Component Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/cmap/connect.js:9
+:13
+Module not found: Can't resolve 'net'
+  [90m 7 |[0m 
+exports.prepareHandshakeDocument = 
+prepareHandshakeDocument;
+  [90m 8 |[0m exports.makeSocket = 
+makeSocket;
+[31m[1m>[0m [90m 9 |[0m [36mconst[0m 
+net = require([32m"net"[0m);
+  [90m   |[0m             
+[31m[1m^^^^^^^^^^^^^^[0m
+  [90m10 |[0m [36mconst[0m tls = 
+require([32m"tls"[0m);
+  [90m11 |[0m [36mconst[0m constants_1 
+= require([32m"../constants"[0m);
+  [90m12 |[0m [36mconst[0m deps_1 = 
+require([32m"../deps"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    
+./node_modules/mongodb/lib/cmap/connect.js 
+[Client Component Browser]
+    
+./node_modules/mongodb/lib/sdam/monitor.js 
+[Client Component Browser]
+    ./node_modules/mongodb/lib/connection_st
+ring.js [Client Component Browser]
+    
+./node_modules/mongodb/lib/mongo_client.js 
+[Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/User.ts [Client Component 
+Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/cmap/auth/mongodb
+_oidc/callback_workflow.js:4:20
+Module not found: Can't resolve 
+'timers/promises'
+  [90m2 |[0m 
+[33mObject[0m.defineProperty(exports, 
+[32m"__esModule"[0m, { value: 
+[36mtrue[0m });
+  [90m3 |[0m 
+exports.[33mCallbackWorkflow[0m = 
+exports.[33mAUTOMATED_TIMEOUT_MS[0m = 
+exports.[33mHUMAN_TIMEOUT_MS[0m = 
+[36mvoid[0m [35m0[0m;
+[31m[1m>[0m [90m4 |[0m [36mconst[0m 
+promises_1 = 
+require([32m"timers/promises"[0m);
+  [90m  |[0m                    
+[31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mconst[0m error_1 = 
+require([32m"../../../error"[0m);
+  [90m6 |[0m [36mconst[0m utils_1 = 
+require([32m"../../../utils"[0m);
+  [90m7 |[0m [36mconst[0m 
+command_builders_1 = 
+require([32m"./command_builders"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/cmap/auth/mon
+godb_oidc/callback_workflow.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/cmap/auth/mon
+godb_oidc/human_callback_workflow.js 
+[Client Component Browser]
+    ./node_modules/mongodb/lib/mongo_client_
+auth_providers.js [Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/dbConfig.ts [Client Component 
+Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/sessions.js:7:20
+Module not found: Can't resolve 
+'timers/promises'
+  [90m 5 |[0m exports.applySession = 
+applySession;
+  [90m 6 |[0m 
+exports.updateSessionFromResponse = 
+updateSessionFromResponse;
+[31m[1m>[0m [90m 7 |[0m [36mconst[0m 
+promises_1 = 
+require([32m"timers/promises"[0m);
+  [90m   |[0m                    
+[31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m [36mconst[0m bson_1 = 
+require([32m"./bson"[0m);
+  [90m 9 |[0m [36mconst[0m metrics_1 = 
+require([32m"./cmap/metrics"[0m);
+  [90m10 |[0m [36mconst[0m constants_1 
+= require([32m"./constants"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/sessions.js 
+[Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/api/appointments.service.ts 
+[Client Component Browser]
+    ./lib/api/index.ts [Client Component 
+Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./app/doctor/layout.tsx [Client 
+Component Browser]
+    ./app/doctor/layout.tsx [Server 
+Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/client-side-encry
+ption/state_machine.js:7:13
+Module not found: Can't resolve 'tls'
+  [90m 5 |[0m [36mconst[0m net = 
+require([32m"net"[0m);
+  [90m 6 |[0m [36mconst[0m process = 
+require([32m"process"[0m);
+[31m[1m>[0m [90m 7 |[0m [36mconst[0m 
+tls = require([32m"tls"[0m);
+  [90m   |[0m             
+[31m[1m^^^^^^^^^^^^^^[0m
+  [90m 8 |[0m [36mconst[0m bson_1 = 
+require([32m"../bson"[0m);
+  [90m 9 |[0m [36mconst[0m 
+abstract_cursor_1 = require([32m"../cursor/
+abstract_cursor"[0m);
+  [90m10 |[0m [36mconst[0m deps_1 = 
+require([32m"../deps"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/mongodb/lib/client-side-e
+ncryption/state_machine.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/client-side-e
+ncryption/auto_encrypter.js [Client 
+Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/Doctor.ts [Client 
+Component Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+./node_modules/mongodb/lib/cmap/connect.js:1
+0:13
+Module not found: Can't resolve 'tls'
+  [90m 8 |[0m exports.makeSocket = 
+makeSocket;
+  [90m 9 |[0m [36mconst[0m net = 
+require([32m"net"[0m);
+[31m[1m>[0m [90m10 |[0m [36mconst[0m 
+tls = require([32m"tls"[0m);
+  [90m   |[0m             
+[31m[1m^^^^^^^^^^^^^^[0m
+  [90m11 |[0m [36mconst[0m constants_1 
+= require([32m"../constants"[0m);
+  [90m12 |[0m [36mconst[0m deps_1 = 
+require([32m"../deps"[0m);
+  [90m13 |[0m [36mconst[0m error_1 = 
+require([32m"../error"[0m);
+
+
+
+Import trace:
+  Client Component Browser:
+    
+./node_modules/mongodb/lib/cmap/connect.js 
+[Client Component Browser]
+    
+./node_modules/mongodb/lib/sdam/monitor.js 
+[Client Component Browser]
+    ./node_modules/mongodb/lib/connection_st
+ring.js [Client Component Browser]
+    
+./node_modules/mongodb/lib/mongo_client.js 
+[Client Component Browser]
+    ./node_modules/mongodb/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/lib/index.js 
+[Client Component Browser]
+    ./node_modules/mongoose/index.js 
+[Client Component Browser]
+    ./lib/models/User.ts [Client Component 
+Browser]
+    ./lib/api/auth.service.ts [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Client 
+Component Browser]
+    ./context/AuthContext.tsx [Server 
+Component]
+    ./app/layout.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-
+found
+
+
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/me
+ssages/module-not-found)

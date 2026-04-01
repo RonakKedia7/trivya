@@ -1,13 +1,16 @@
-// app/api/appointments/stats/doctor/route.ts
-// GET /api/appointments/stats/doctor?doctorId=...  → doctor only
-// PRODUCTION: Derive doctorId from JWT sub; validate role
-import { NextRequest, NextResponse } from 'next/server';
-import { appointmentsService } from '@/lib/api';
+import { NextRequest } from 'next/server';
+import { appointmentsService } from '@/lib/services/appointments.service';
+import { badRequest, ok, serverError } from '@/lib/utils/apiResponse';
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const doctorId = searchParams.get('doctorId') ?? '';
-  const today = new Date().toISOString().split('T')[0];
-  const result = await appointmentsService.getDoctorStats(doctorId, today);
-  return NextResponse.json(result, { status: 200 });
+  try {
+    const { searchParams } = new URL(req.url);
+    const doctorId = searchParams.get('doctorId') ?? '';
+    if (!doctorId) return badRequest('doctorId is required');
+    const today = new Date().toISOString().split('T')[0];
+    const stats = await appointmentsService.statsDoctor(doctorId, today);
+    return ok(stats);
+  } catch {
+    return serverError();
+  }
 }

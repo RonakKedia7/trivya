@@ -1,12 +1,15 @@
-// app/api/appointments/stats/patient/route.ts
-// GET /api/appointments/stats/patient?patientId=...  → patient only
-// PRODUCTION: Derive patientId from JWT sub; validate role
-import { NextRequest, NextResponse } from 'next/server';
-import { appointmentsService } from '@/lib/api';
+import { NextRequest } from 'next/server';
+import { appointmentsService } from '@/lib/services/appointments.service';
+import { badRequest, ok, serverError } from '@/lib/utils/apiResponse';
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const patientId = searchParams.get('patientId') ?? '';
-  const result = await appointmentsService.getPatientStats(patientId);
-  return NextResponse.json(result, { status: 200 });
+  try {
+    const { searchParams } = new URL(req.url);
+    const patientId = searchParams.get('patientId') ?? '';
+    if (!patientId) return badRequest('patientId is required');
+    const stats = await appointmentsService.statsPatient(patientId);
+    return ok(stats);
+  } catch {
+    return serverError();
+  }
 }

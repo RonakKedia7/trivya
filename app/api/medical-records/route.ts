@@ -1,46 +1,49 @@
-// app/api/medical-records/route.ts
-// GET  /api/medical-records  → admin only
-// POST /api/medical-records  → doctor only (create or upsert)
-// PRODUCTION: Validate JWT; POST enforces doctor role and appointment ownership
 import { NextRequest, NextResponse } from 'next/server';
-import { medicalRecordsService, appointmentsService, authService } from '@/lib/api';
+import { medicalRecordsService } from '@/lib/services/medical-records.service';
+import { appointmentsService } from '@/lib/services/appointments.service';
+import { getUserFromRequest } from '@/lib/middleware/auth';
+import { badRequest, created, notFound, serverError, unauthorized } from '@/lib/utils/apiResponse';
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const result = await medicalRecordsService.getAll({
-    page:  searchParams.get('page')  ? Number(searchParams.get('page'))  : undefined,
-    limit: searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined,
-  });
-  return NextResponse.json(result, { status: 200 });
+  try {
+    const { searchParams } = new URL(req.url);
+    const data = await medicalRecordsService.listAll({
+      page: searchParams.get('page') ? Number(searchParams.get('page')) : undefined,
+      limit: searchParams.get('limit') ? Number(searchParams.get('limit')) : undefined,
+    });
+    return NextResponse.json({ success: true, data }, { status: 200 });
+  } catch {
+    return serverError();
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const decoded = getUserFromRequest(req);
+    if (!decoded?.id) return unauthorized();
 
-    // Derive context from the appointment
-    const aptRes = await appointmentsService.getById(body.appointmentId);
-    if (!aptRes.success) {
-      return NextResponse.json({ success: false, error: 'Appointment not found' }, { status: 404 });
-    }
+    if (!body?.appointmentId || !body?.diagnosis) return badRequest('appointmentId and diagnosis are required');
 
-    const userRes = await authService.getMe();
-    if (!userRes.success) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
+    // Derive patient/doctor from the appointment (source of truth)
+    const apt = await appointmentsService.get(body.appointmentId);
+    if (!apt) return notFound('Appointment not found');
 
-    const apt = aptRes.data;
-    const result = await medicalRecordsService.create(body, {
-      id:          apt.doctorId,
-      name:        apt.doctorName,
-      patientId:   apt.patientId,
-      patientName: apt.patientName,
-      date:        apt.date,
-    });
+    const record = await medicalRecordsService.create(
+      {
+        appointmentId: body.appointmentId,
+        diagnosis: body.diagnosis,
+        treatment: body.treatment ?? body.prescription ?? '',
+        prescription: body.prescription,
+        notes: body.notes,
+        finalized: body.finalized ?? true,
+      },
+      apt.patientId,
+      apt.doctorId,
+    );
 
-    if (!result.success) return NextResponse.json(result, { status: 400 });
-    return NextResponse.json(result, { status: 201 });
+    return created(record);
   } catch {
-    return NextResponse.json({ success: false, error: 'Invalid request body' }, { status: 400 });
+    return serverError();
   }
 }

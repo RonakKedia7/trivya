@@ -1,11 +1,12 @@
-// app/api/auth/register/route.ts
-// PRODUCTION: Hash password with bcrypt, insert user into MongoDB, return JWT
-import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/api';
+import { NextRequest } from 'next/server';
+import { authService } from '@/lib/services/auth.service';
+import { badRequest, conflict, created, serverError } from '@/lib/utils/apiResponse';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    if (!body?.name || !body?.email || !body?.password) return badRequest('Name, email, and password are required');
+
     const result = await authService.register({
       name: body.name,
       email: body.email,
@@ -13,11 +14,10 @@ export async function POST(req: NextRequest) {
       role: body.role ?? 'patient',
       phone: body.phone,
     });
-    if (!result.success) {
-      return NextResponse.json({ success: false, error: result.error }, { status: 409 });
-    }
-    return NextResponse.json(result, { status: 201 });
+    if (!result.ok && result.code === 'EMAIL_EXISTS') return conflict('Email already registered');
+    if (!result.ok) return serverError();
+    return created(result.data);
   } catch {
-    return NextResponse.json({ success: false, error: 'Invalid request body' }, { status: 400 });
+    return serverError();
   }
 }

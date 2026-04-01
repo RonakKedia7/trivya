@@ -1,12 +1,17 @@
-// app/api/auth/me/route.ts
-// PRODUCTION: Decode JWT from Authorization header, return user from MongoDB
-import { NextResponse } from 'next/server';
-import { authService } from '@/lib/api';
+import { NextRequest } from 'next/server';
+import { authService } from '@/lib/services/auth.service';
+import { getUserFromRequest } from '@/lib/middleware/auth';
+import { ok, unauthorized, serverError } from '@/lib/utils/apiResponse';
 
-export async function GET() {
-  const result = await authService.getMe();
-  if (!result.success) {
-    return NextResponse.json({ success: false, error: result.error }, { status: 401 });
+export async function GET(req: NextRequest) {
+  try {
+    const decoded = getUserFromRequest(req);
+    if (!decoded?.id) return unauthorized();
+
+    const result = await authService.getMe(decoded.id);
+    if (!result.ok) return unauthorized();
+    return ok(result.data);
+  } catch {
+    return serverError();
   }
-  return NextResponse.json(result, { status: 200 });
 }

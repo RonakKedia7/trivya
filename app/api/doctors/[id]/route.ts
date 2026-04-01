@@ -1,33 +1,38 @@
-// app/api/doctors/[id]/route.ts
-// GET    /api/doctors/:id  → public
-// PUT    /api/doctors/:id  → admin / self doctor
-// DELETE /api/doctors/:id  → admin only
-// PRODUCTION: Validate JWT role before PUT/DELETE
-import { NextRequest, NextResponse } from 'next/server';
-import { doctorsService } from '@/lib/api';
+import { NextRequest } from 'next/server';
+import { doctorsService } from '@/lib/services/doctors.service';
+import { badRequest, notFound, ok, serverError } from '@/lib/utils/apiResponse';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const result = await doctorsService.getById(id);
-  if (!result.success) return NextResponse.json(result, { status: 404 });
-  return NextResponse.json(result, { status: 200 });
+  try {
+    const { id } = await params;
+    const doc = await doctorsService.get(id);
+    if (!doc) return notFound('Doctor not found');
+    return ok(doc);
+  } catch {
+    return serverError();
+  }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
+    if (!body || typeof body !== 'object') return badRequest('Invalid request body');
     const result = await doctorsService.update(id, body);
-    if (!result.success) return NextResponse.json(result, { status: 404 });
-    return NextResponse.json(result, { status: 200 });
+    if (!result.ok) return notFound('Doctor not found');
+    return ok(result.data, 'Doctor updated successfully');
   } catch {
-    return NextResponse.json({ success: false, error: 'Invalid request body' }, { status: 400 });
+    return serverError();
   }
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const result = await doctorsService.delete(id);
-  if (!result.success) return NextResponse.json(result, { status: 404 });
-  return NextResponse.json(result, { status: 200 });
+  try {
+    const { id } = await params;
+    const result = await doctorsService.remove(id);
+    if (!result.ok) return notFound('Doctor not found');
+    return ok(null, 'Doctor deleted successfully');
+  } catch {
+    return serverError();
+  }
 }

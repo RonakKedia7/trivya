@@ -1,21 +1,21 @@
-// app/api/appointments/[id]/status/route.ts
-// PATCH /api/appointments/:id/status → doctor or admin
-// Body: { status: 'in-progress' | 'completed' | 'cancelled', notes?: string }
-// PRODUCTION: Enforce status transition rules server-side; validate doctor/admin JWT
-import { NextRequest, NextResponse } from 'next/server';
-import { appointmentsService } from '@/lib/api';
+import { NextRequest } from 'next/server';
+import { appointmentsService } from '@/lib/services/appointments.service';
+import { badRequest, notFound, ok, serverError, unauthorized } from '@/lib/utils/apiResponse';
+import { getUserFromRequest } from '@/lib/middleware/auth';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const decoded = getUserFromRequest(req);
+    if (!decoded?.id) return unauthorized();
+
     const { id } = await params;
     const body = await req.json();
-    const result = await appointmentsService.updateStatus(id, {
-      status: body.status,
-      notes:  body.notes,
-    });
-    if (!result.success) return NextResponse.json(result, { status: 400 });
-    return NextResponse.json(result, { status: 200 });
+    if (!body?.status) return badRequest('status is required');
+
+    const result = await appointmentsService.updateStatus(id, { status: body.status, notes: body.notes });
+    if (!result.ok) return notFound('Appointment not found');
+    return ok(result.data);
   } catch {
-    return NextResponse.json({ success: false, error: 'Invalid request body' }, { status: 400 });
+    return serverError();
   }
 }

@@ -1,20 +1,29 @@
-// app/api/appointments/[id]/route.ts
-// GET    /api/appointments/:id  → any authenticated user
-// DELETE /api/appointments/:id  → patient (cancel) / admin
-// PRODUCTION: Validate JWT; patient can only cancel their own appointment
-import { NextRequest, NextResponse } from 'next/server';
-import { appointmentsService } from '@/lib/api';
+import { NextRequest } from 'next/server';
+import { appointmentsService } from '@/lib/services/appointments.service';
+import { getUserFromRequest } from '@/lib/middleware/auth';
+import { notFound, ok, serverError, unauthorized } from '@/lib/utils/apiResponse';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const result = await appointmentsService.getById(id);
-  if (!result.success) return NextResponse.json(result, { status: 404 });
-  return NextResponse.json(result, { status: 200 });
+  try {
+    const { id } = await params;
+    const doc = await appointmentsService.get(id);
+    if (!doc) return notFound('Appointment not found');
+    return ok(doc);
+  } catch {
+    return serverError();
+  }
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const result = await appointmentsService.cancel(id);
-  if (!result.success) return NextResponse.json(result, { status: 404 });
-  return NextResponse.json(result, { status: 200 });
+  try {
+    const decoded = getUserFromRequest(_req);
+    if (!decoded?.id) return unauthorized();
+
+    const { id } = await params;
+    const result = await appointmentsService.cancel(id);
+    if (!result.ok) return notFound('Appointment not found');
+    return ok(result.data);
+  } catch {
+    return serverError();
+  }
 }

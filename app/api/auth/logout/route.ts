@@ -1,9 +1,6 @@
-// app/api/auth/logout/route.ts
-// PRODUCTION: Invalidate refresh token in DB
-import { NextResponse } from 'next/server';
-import { authService } from '@/lib/api';
+import { noContent } from '@/lib/utils/apiResponse';
 
 export async function POST() {
-  const result = await authService.logout();
-  return NextResponse.json(result, { status: 200 });
+  // Stateless JWT: client clears token; server has nothing to invalidate here.
+  return noContent();
 }

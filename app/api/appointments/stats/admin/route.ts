@@ -1,11 +1,12 @@
-// app/api/appointments/stats/admin/route.ts
-// GET /api/appointments/stats/admin → admin only
-// PRODUCTION: Validate admin JWT; run aggregation pipeline on MongoDB
-import { NextResponse } from 'next/server';
-import { appointmentsService } from '@/lib/api';
+import { appointmentsService } from '@/lib/services/appointments.service';
+import { ok, serverError } from '@/lib/utils/apiResponse';
 
 export async function GET() {
-  const today = new Date().toISOString().split('T')[0];
-  const result = await appointmentsService.getAdminStats(today);
-  return NextResponse.json(result, { status: 200 });
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const stats = await appointmentsService.statsAdmin(today);
+    return ok(stats);
+  } catch {
+    return serverError();
+  }
 }
