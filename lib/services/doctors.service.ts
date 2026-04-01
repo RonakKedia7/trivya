@@ -30,7 +30,53 @@ type CreateDoctorRequest = {
 
 type UpdateDoctorRequest = Partial<Omit<CreateDoctorRequest, 'email' | 'password'>> & { name?: string; phone?: string };
 
+type AvailabilitySlot = { startTime: string; endTime: string; isAvailable: boolean };
+type DayAvailability = { day: string; isWorking: boolean; slots: AvailabilitySlot[] };
+
+const WEEK_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+function createDefaultWeeklyAvailability(): DayAvailability[] {
+  return WEEK_DAYS.map((day) => ({
+    day,
+    isWorking: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day),
+    slots: [],
+  }));
+}
+
+function normalizeSchedule(raw: any): DayAvailability[] {
+  if (typeof raw === 'boolean') {
+    if (raw) return createDefaultWeeklyAvailability();
+    return WEEK_DAYS.map((day) => ({ day, isWorking: false, slots: [] }));
+  }
+
+  const incoming = Array.isArray(raw) ? raw : [];
+  const byDay = new Map<string, DayAvailability>();
+
+  for (const item of incoming) {
+    const day = WEEK_DAYS.find((d) => d.toLowerCase() === String(item?.day || '').toLowerCase());
+    if (!day) continue;
+    const slots = Array.isArray(item?.slots)
+      ? item.slots
+          .filter((s: any) => typeof s?.startTime === 'string' && typeof s?.endTime === 'string')
+          .map((s: any) => ({
+            startTime: s.startTime.trim(),
+            endTime: s.endTime.trim(),
+            isAvailable: Boolean(s.isAvailable),
+          }))
+      : [];
+
+    byDay.set(day, {
+      day,
+      isWorking: Boolean(item?.isWorking),
+      slots,
+    });
+  }
+
+  return WEEK_DAYS.map((day) => byDay.get(day) ?? { day, isWorking: false, slots: [] });
+}
+
 function mapDoctorToFrontend(doc: any) {
+  const schedule = normalizeSchedule(doc.availability);
   return {
     id: doc._id.toString(),
     role: 'doctor',
@@ -43,7 +89,7 @@ function mapDoctorToFrontend(doc: any) {
     experience: doc.experience,
     consultationFee: doc.consultationFee || 500,
     bio: doc.bio || '',
-    availability: doc.availability ? [{ day: 'Monday', isWorking: true, slots: [{ startTime: '09:00', endTime: '17:00', isAvailable: true }] }] : [],
+    availability: schedule,
     createdAt: safeIso(doc.createdAt).split('T')[0],
   };
 }
@@ -110,7 +156,7 @@ export const doctorsService = {
       experience: req.experience,
       consultationFee: req.consultationFee,
       bio: req.bio,
-      availability: true,
+      availability: createDefaultWeeklyAvailability(),
     });
 
     const populated = await newDoctor.populate('user');
@@ -151,14 +197,17 @@ export const doctorsService = {
 
   async getAvailability(id: string) {
     await connectDB();
-    const doctor = await DoctorModel.findById(id);
+    const doctor = await DoctorModel.findById(id).select('availability');
     if (!doctor) return null;
-    return doctor.availability ? [] : [];
+    return normalizeSchedule(doctor.availability);
   },
 
-  async updateAvailability(_id: string, schedule: any) {
-    // Availability schema not implemented; keep transport shape stable for UI.
-    return schedule;
+  async updateAvailability(id: string, schedule: any) {
+    await connectDB();
+    const normalizedSchedule = normalizeSchedule(schedule);
+    const updated = await DoctorModel.findByIdAndUpdate(id, { availability: normalizedSchedule }, { new: true }).select('availability');
+    if (!updated) return null;
+    return normalizeSchedule(updated.availability);
   },
 };
 

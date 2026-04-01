@@ -28,6 +28,7 @@ type CreateAppointmentRequest = {
 };
 
 type UpdateAppointmentStatusRequest = { status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled'; notes?: string };
+type DoctorScheduleDay = { day: string; isWorking: boolean; slots: Array<{ startTime: string; endTime: string; isAvailable: boolean }> };
 
 function mapAppointmentToFrontend(doc: any) {
   return {
@@ -62,6 +63,46 @@ function buildFilters(filters: AppointmentFilters) {
     query.patient = new mongoose.Types.ObjectId(filters.patientId);
   }
   return query;
+}
+
+function parseTimeToMinutes(time: string): number | null {
+  const value = String(time || '').trim().toUpperCase();
+
+  // HH:mm (24h)
+  const h24 = value.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (h24) return Number(h24[1]) * 60 + Number(h24[2]);
+
+  // hh:mm AM/PM
+  const h12 = value.match(/^(0?\d|1[0-2]):([0-5]\d)\s?(AM|PM)$/);
+  if (h12) {
+    const baseHour = Number(h12[1]) % 12;
+    const minutes = Number(h12[2]);
+    const isPm = h12[3] === 'PM';
+    return (baseHour + (isPm ? 12 : 0)) * 60 + minutes;
+  }
+
+  return null;
+}
+
+function isDoctorAvailableAt(schedule: DoctorScheduleDay[] | undefined, dateStr: string, timeStr: string): boolean {
+  if (!Array.isArray(schedule) || schedule.length === 0) return false;
+  const bookingDate = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(bookingDate.getTime())) return false;
+
+  const bookingMinutes = parseTimeToMinutes(timeStr);
+  if (bookingMinutes === null) return false;
+
+  const dayName = bookingDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  const daySchedule = schedule.find((d) => String(d.day).toLowerCase() === dayName);
+  if (!daySchedule || !daySchedule.isWorking) return false;
+
+  return daySchedule.slots.some((slot) => {
+    if (!slot.isAvailable) return false;
+    const start = parseTimeToMinutes(slot.startTime);
+    const end = parseTimeToMinutes(slot.endTime);
+    if (start === null || end === null) return false;
+    return bookingMinutes >= start && bookingMinutes < end;
+  });
 }
 
 export const appointmentsService = {
@@ -129,20 +170,25 @@ export const appointmentsService = {
     const endOfDay = new Date(parsedDate);
     endOfDay.setUTCHours(23, 59, 59, 999);
 
-    const conflict = await AppointmentModel.findOne({
-      doctor: req.doctorId,
-      date: { $gte: startOfDay, $lte: endOfDay },
-      timeSlot: req.time,
-      status: { $in: ['Scheduled', 'Completed'] },
-    });
-    if (conflict) return { ok: false as const, code: 'CONFLICT' as const, message: 'This time slot is already booked.' };
-
     let doctor: any = null;
     if (mongoose.isValidObjectId(req.doctorId)) {
       doctor = await DoctorModel.findById(req.doctorId).populate('user');
       if (!doctor) doctor = await DoctorModel.findOne({ user: req.doctorId }).populate('user');
     }
     if (!doctor) return { ok: false as const, code: 'NOT_FOUND' as const, message: 'Doctor not found' };
+
+    if (!isDoctorAvailableAt((doctor.availability as DoctorScheduleDay[]) || [], req.date, req.time)) {
+      return { ok: false as const, code: 'INVALID_SLOT' as const, message: 'Doctor is not available at the selected day/time.' };
+    }
+
+    const requestedMinutes = parseTimeToMinutes(req.time);
+    const sameDayAppointments = await AppointmentModel.find({
+      doctor: doctor._id,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ['Scheduled', 'Completed'] },
+    }).select('timeSlot');
+    const hasConflict = sameDayAppointments.some((item) => parseTimeToMinutes(item.timeSlot) === requestedMinutes);
+    if (hasConflict) return { ok: false as const, code: 'CONFLICT' as const, message: 'This time slot is already booked.' };
 
     const patient = await PatientModel.findOne({ user: userId });
     if (!patient) return { ok: false as const, code: 'NOT_FOUND' as const, message: 'Patient profile not found. Please setup profile.' };

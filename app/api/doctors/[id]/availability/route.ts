@@ -19,6 +19,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json();
     if (!body?.schedule) return badRequest('schedule is required');
     const updated = await doctorsService.updateAvailability(id, body.schedule);
+    if (!updated) return notFound('Doctor not found');
     return ok(updated, 'Availability updated successfully');
   } catch {
     return serverError();
