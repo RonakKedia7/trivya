@@ -39,7 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Rehydrate from sessionStorage via the service layer (GET /auth/me)
     authService.getMe().then((res) => {
       if (res.success && res.data) {
         setUser(res.data as User);
@@ -62,7 +61,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: true, user: loggedInUser };
       }
       setIsLoading(false);
-      // Surface the exact error message returned by the API
       return {
         success: false,
         error: res.error || res.message || "Invalid email or password",
@@ -96,8 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: true, user: newUser };
       }
       setIsLoading(false);
-      // Surface the exact error returned by the API (e.g. "Email already registered",
-      // password policy failure, etc.)
       return {
         success: false,
         error:
