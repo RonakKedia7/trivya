@@ -4,8 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { UserRole } from "@/lib/types";
-
+import {
+  isStrongPassword,
+  PASSWORD_POLICY_TEXT,
+} from "@/lib/utils/passwordPolicy";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -13,7 +15,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "patient" as UserRole,
+    role: "patient" as "patient",
     phone: "",
   });
   const [error, setError] = useState("");
@@ -37,14 +39,16 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    // Use the same strong-password policy the API enforces
+    if (!isStrongPassword(formData.password)) {
+      setError(PASSWORD_POLICY_TEXT);
       return;
     }
 
     setIsLoading(true);
 
-    const success = await register({
+    // register() returns { success, user, error } — destructure properly
+    const result = await register({
       name: formData.name,
       email: formData.email,
       password: formData.password,
@@ -52,25 +56,14 @@ export default function RegisterPage() {
       phone: formData.phone,
     });
 
-    if (success) {
-      switch (formData.role) {
-        case "admin":
-          router.push("/admin");
-          break;
-        case "doctor":
-          router.push("/doctor");
-          break;
-        case "patient":
-          router.push("/patient");
-          break;
-        default:
-          router.push("/");
-      }
-    } else {
-      setError("Registration failed. Please try again.");
-    }
-
     setIsLoading(false);
+
+    if (result.success) {
+      // Registration succeeded and user is now logged in — go to dashboard
+      router.push("/patient");
+    } else {
+      setError(result.error || "Registration failed. Please try again.");
+    }
   };
 
   return (
@@ -168,8 +161,6 @@ export default function RegisterPage() {
                 />
               </div>
 
-
-
               <div>
                 <label
                   htmlFor="password"
@@ -187,6 +178,9 @@ export default function RegisterPage() {
                   className="mt-1 block w-full rounded-lg border border-input bg-background px-4 py-3 text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
                   placeholder="Create a password"
                 />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {PASSWORD_POLICY_TEXT}
+                </p>
               </div>
 
               <div>

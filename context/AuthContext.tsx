@@ -1,14 +1,25 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '@/lib/types';
-import { authService } from '@/lib/api';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { User, UserRole } from "@/lib/types";
+import { authService } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
-  register: (data: RegisterData) => Promise<{ success: boolean; user?: User; error?: string }>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; user?: User; error?: string }>;
+  register: (
+    data: RegisterData,
+  ) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -28,48 +39,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Rehydrate from localStorage via the service layer (same as GET /auth/me)
+    // Rehydrate from sessionStorage via the service layer (GET /auth/me)
     authService.getMe().then((res) => {
       if (res.success && res.data) {
-        setUser(res.data);
+        setUser(res.data as User);
       }
       setIsLoading(false);
     });
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> => {
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; user?: User; error?: string }> => {
     setIsLoading(true);
-    const res = await authService.login({ email, password });
-    if (res.success && res.data) {
-      setUser(res.data.user as User);
+    try {
+      const res = await authService.login({ email, password });
+      if (res.success && res.data?.user) {
+        const loggedInUser = res.data.user as User;
+        setUser(loggedInUser);
+        setIsLoading(false);
+        return { success: true, user: loggedInUser };
+      }
       setIsLoading(false);
-      return { success: true, user: res.data.user as User };
+      // Surface the exact error message returned by the API
+      return {
+        success: false,
+        error: res.error || res.message || "Invalid email or password",
+      };
+    } catch (err) {
+      console.error("[AuthContext] login error:", err);
+      setIsLoading(false);
+      return {
+        success: false,
+        error: "An unexpected error occurred. Please try again.",
+      };
     }
-    setIsLoading(false);
-    return { success: false, error: res.error || 'Invalid email or password' };
   };
 
-  const register = async (data: RegisterData): Promise<{ success: boolean; user?: User; error?: string }> => {
+  const register = async (
+    data: RegisterData,
+  ): Promise<{ success: boolean; user?: User; error?: string }> => {
     setIsLoading(true);
-    const res = await authService.register({
-      name: data.name,
-      email: data.email,
-      password: data.password,
-      role: data.role as 'doctor' | 'patient',
-      phone: data.phone,
-    });
-    if (res.success && res.data) {
-      setUser(res.data.user as User);
+    try {
+      const res = await authService.register({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        role: data.role as "doctor" | "patient",
+        phone: data.phone,
+      });
+      if (res.success && res.data?.user) {
+        const newUser = res.data.user as User;
+        setUser(newUser);
+        setIsLoading(false);
+        return { success: true, user: newUser };
+      }
       setIsLoading(false);
-      return { success: true, user: res.data.user as User };
+      // Surface the exact error returned by the API (e.g. "Email already registered",
+      // password policy failure, etc.)
+      return {
+        success: false,
+        error:
+          res.error || res.message || "Registration failed. Please try again.",
+      };
+    } catch (err) {
+      console.error("[AuthContext] register error:", err);
+      setIsLoading(false);
+      return {
+        success: false,
+        error: "An unexpected error occurred. Please try again.",
+      };
     }
-    setIsLoading(false);
-    return { success: false, error: res.error || 'Registration failed' };
   };
 
-  /**
-   * Calls authService.logout() — which hits POST /auth/logout in production.
-   */
   const logout = () => {
     authService.logout();
     setUser(null);
@@ -94,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

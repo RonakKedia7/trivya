@@ -17,6 +17,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+
     const { success, user, error: loginError } = await login(email, password);
 
     if (success && user) {
@@ -40,14 +41,11 @@ export default function LoginPage() {
           router.push("/");
       }
     } else {
-      setError(
-        loginError || "Invalid email or password.",
-      );
+      setError(loginError || "Invalid email or password.");
     }
 
     setIsLoading(false);
   };
-
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -150,7 +148,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {"Don't have an account? "}
