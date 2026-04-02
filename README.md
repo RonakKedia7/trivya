@@ -16,9 +16,7 @@
 - [Scripts](#scripts)
 - [API Endpoints](#api-endpoints)
 - [Security](#security)
-- [Deployment](#deployment)
 - [Future Enhancements](#future-enhancements)
-- [License](#license)
 
 ---
 
@@ -236,16 +234,6 @@ npm run dev
 | Access Control      | Role-based authorization middleware        |
 | Request Validation  | Zod schema validation for all inputs       |
 | Route Protection    | Middleware guards for authenticated routes |
-
----
-
-## Deployment
-
-| Platform | Suitability                                               |
-| -------- | --------------------------------------------------------- |
-| Vercel   | Recommended for Next.js applications with automatic CI/CD |
-| AWS      | Scalable hosting with EC2 and Elastic Beanstalk           |
-| Render   | Simple deployment with built-in environment management    |
 
 ---
 
