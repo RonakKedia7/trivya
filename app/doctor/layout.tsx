@@ -167,11 +167,6 @@ export default function DoctorLayout({
         </header>
 
         <main className="flex-1 overflow-auto p-4 lg:p-6">
-          {mustChangePassword && (
-            <div className="mb-4 rounded-lg border border-amber-300 bg-amber-100/50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-600/40 dark:bg-amber-900/20 dark:text-amber-200">
-              You must update your password before continuing.
-            </div>
-          )}
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
       </div>
