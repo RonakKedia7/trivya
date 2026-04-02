@@ -1,7 +1,6 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __mongooseConn: { promise: Promise<typeof mongoose> | null } | undefined;
 }
 
@@ -12,7 +11,7 @@ declare global {
 export async function connectDB(): Promise<typeof mongoose> {
   const mongoUri = process.env.MONGO_URI;
   if (!mongoUri) {
-    throw new Error('MONGO_URI is not set');
+    throw new Error("MONGO_URI is not set");
   }
 
   // Already connected
