@@ -27,7 +27,7 @@ export default function DoctorDashboard() {
       if (docRes.success && docRes.data) {
         setCurrentDoctor(docRes.data);
         Promise.all([
-          appointmentsService.getDoctorStats(docRes.data.id, TODAY),
+          appointmentsService.getDoctorStats(docRes.data.id),
           appointmentsService.getMine(user, { date: TODAY }),
           appointmentsService.getMine(user, { status: "scheduled" }),
         ]).then(([statsRes, todayRes, upcomingRes]) => {

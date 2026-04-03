@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    appointmentsService.getAdminStats(TODAY).then((res) => {
+    appointmentsService.getAdminStats().then((res) => {
       if (res.success) setStats(res.data);
       setIsLoading(false);
     });
