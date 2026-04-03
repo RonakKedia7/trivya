@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -57,12 +58,15 @@ export default function LoginPage() {
               <img src="/logo.png" alt="Trivya Care logo" />
             </div>
           </Link>
-          <Link
-            href="/register"
-            className="cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Create Account
-          </Link>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Link
+              href="/register"
+              className="cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Create Account
+            </Link>
+          </div>
         </div>
       </header>
 

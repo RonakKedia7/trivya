@@ -8,6 +8,7 @@ import {
   isStrongPassword,
   PASSWORD_POLICY_TEXT,
 } from "@/lib/utils/passwordPolicy";
+import ThemeToggle from "@/components/theme-toggle";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -76,12 +77,15 @@ export default function RegisterPage() {
               <img src="/logo.png" alt="Trivya Care logo" />
             </div>
           </Link>
-          <Link
-            href="/login"
-            className="cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Sign In
-          </Link>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Link
+              href="/login"
+              className="cursor-pointer text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Sign In
+            </Link>
+          </div>
         </div>
       </header>
 
